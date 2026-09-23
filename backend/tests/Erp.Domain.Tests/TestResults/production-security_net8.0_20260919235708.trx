@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="705de5f8-e381-4c8d-9566-a4b54d86bea8" name="@Abdos-MacBook-Pro 2026-09-19 23:57:07" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-19T23:57:07.9843820+04:00" queuing="2026-09-19T23:57:07.9843820+04:00" start="2026-09-19T23:57:07.0750530+04:00" finish="2026-09-19T23:57:08.0634460+04:00" />
+  <TestSettings name="default" id="c95e940a-7185-4f27-8d98-9e3722f0cb23">
+    <Deployment runDeploymentRoot="_Abdos-MacBook-Pro_2026-09-19_23_57_07" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="d76a83a4-4847-498b-846a-17c20c37eb04" testId="1925bc6a-da50-77c7-ab05-69238d10baea" testName="Erp.Domain.Tests.DomainInvariantTests.InventoryBalanceRejectsMovementsThatWouldMakeStockNegative" computerName="Abdos-MacBook-Pro" duration="00:00:00.0003195" startTime="2026-09-19T23:57:07.8938800+04:00" endTime="2026-09-19T23:57:07.8938800+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d76a83a4-4847-498b-846a-17c20c37eb04" />
+    <UnitTestResult executionId="2af071e2-fc99-49fa-a36a-148c8d660db1" testId="47acc59a-9d54-626e-4b35-fe365a2cceee" testName="Erp.Domain.Tests.DomainInvariantTests.AccountUsesAnExplicitNormalBalanceOverrideForContraAccounts" computerName="Abdos-MacBook-Pro" duration="00:00:00.0022713" startTime="2026-09-19T23:57:07.8849110+04:00" endTime="2026-09-19T23:57:07.8849110+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2af071e2-fc99-49fa-a36a-148c8d660db1" />
+    <UnitTestResult executionId="879accda-1c6e-4de0-9214-c9136bd481c2" testId="2a50e2db-7c96-f685-6677-38ece35d4b64" testName="Erp.Domain.Tests.DomainInvariantTests.PostingAccountCannotBeUsedAsAnAccountHierarchyParent" computerName="Abdos-MacBook-Pro" duration="00:00:00.0048665" startTime="2026-09-19T23:57:07.8828600+04:00" endTime="2026-09-19T23:57:07.8828690+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="879accda-1c6e-4de0-9214-c9136bd481c2" />
+    <UnitTestResult executionId="7b5e2da6-7748-4423-94ce-ec4287637b46" testId="4537338e-2020-344d-bce8-308a5b57c3ea" testName="Erp.Domain.Tests.DomainInvariantTests.SalesInvoiceRejectsLinesInAnotherCurrency" computerName="Abdos-MacBook-Pro" duration="00:00:00.0007855" startTime="2026-09-19T23:57:07.8935090+04:00" endTime="2026-09-19T23:57:07.8935090+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7b5e2da6-7748-4423-94ce-ec4287637b46" />
+    <UnitTestResult executionId="d7807737-d5d8-467c-afc7-725f733390b4" testId="4740e707-7861-115e-3c15-95d5bbc63590" testName="Erp.Domain.Tests.DomainInvariantTests.UserRoleReplacementAffectsOnlyTheSelectedCompany" computerName="Abdos-MacBook-Pro" duration="00:00:00.0021425" startTime="2026-09-19T23:57:07.8902140+04:00" endTime="2026-09-19T23:57:07.8902150+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d7807737-d5d8-467c-afc7-725f733390b4" />
+    <UnitTestResult executionId="3f8d97f9-3a85-453b-90a0-14b4eb997c19" testId="ec953a4e-ea9d-7470-e726-b3cf5c1cd0ca" testName="Erp.Domain.Tests.DomainInvariantTests.AccountHierarchyRejectsDifferentChildAccountTypes" computerName="Abdos-MacBook-Pro" duration="00:00:00.0001537" startTime="2026-09-19T23:57:07.9119480+04:00" endTime="2026-09-19T23:57:07.9119480+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3f8d97f9-3a85-453b-90a0-14b4eb997c19" />
+    <UnitTestResult executionId="7bf237e2-9371-4ebb-b59c-6dbbd956cd36" testId="4f51923e-ed24-0073-cc51-771ec42ecbf3" testName="Erp.Domain.Tests.DomainInvariantTests.RolePermissionReplacementRemovesOnlyThePreviousPermissionSet" computerName="Abdos-MacBook-Pro" duration="00:00:00.0094512" startTime="2026-09-19T23:57:07.9118620+04:00" endTime="2026-09-19T23:57:07.9118620+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7bf237e2-9371-4ebb-b59c-6dbbd956cd36" />
+    <UnitTestResult executionId="a9560224-9828-46e9-9572-050a348bc4d0" testId="1549473d-f8d4-911d-2fdd-5bbbe7f4d9c6" testName="Erp.Domain.Tests.DomainInvariantTests.ChartOfAccountsRejectsDuplicateAccountCodes" computerName="Abdos-MacBook-Pro" duration="00:00:00.0002185" startTime="2026-09-19T23:57:07.8904480+04:00" endTime="2026-09-19T23:57:07.8904480+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a9560224-9828-46e9-9572-050a348bc4d0" />
+    <UnitTestResult executionId="2399d282-d5e8-4cf7-8725-4b6a520d12fe" testId="f711d356-b346-fc0e-8c24-120f0fa54cba" testName="Erp.Domain.Tests.DomainInvariantTests.PurchaseBillCannotBeChangedAfterPosting" computerName="Abdos-MacBook-Pro" duration="00:00:00.0016822" startTime="2026-09-19T23:57:07.8927230+04:00" endTime="2026-09-19T23:57:07.8927230+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2399d282-d5e8-4cf7-8725-4b6a520d12fe" />
+    <UnitTestResult executionId="40bd61e6-e581-43d3-ae26-73ca0e1883c2" testId="1d154162-19d1-7d20-02ee-0f3ff96fd3b6" testName="Erp.Domain.Tests.DomainInvariantTests.ReceiptInventoryMovementRequiresPositiveQuantity" computerName="Abdos-MacBook-Pro" duration="00:00:00.0001256" startTime="2026-09-19T23:57:07.9119080+04:00" endTime="2026-09-19T23:57:07.9119090+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="40bd61e6-e581-43d3-ae26-73ca0e1883c2" />
+    <UnitTestResult executionId="b4ad3868-69ea-476b-8895-b743acaae341" testId="e6067056-c579-e36d-99a2-29c76b941546" testName="Erp.Domain.Tests.DomainInvariantTests.ExternalIdentityRequiresAUserAndProviderSubject" computerName="Abdos-MacBook-Pro" duration="00:00:00.0002895" startTime="2026-09-19T23:57:07.9118800+04:00" endTime="2026-09-19T23:57:07.9118800+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b4ad3868-69ea-476b-8895-b743acaae341" />
+    <UnitTestResult executionId="2eb63164-b11d-41da-9be3-d0575aa7ae59" testId="077ca687-c3f3-be4b-731c-ca9277f8cf27" testName="Erp.Domain.Tests.DomainInvariantTests.OutboundInventoryMovementRequiresANegativeQuantity" computerName="Abdos-MacBook-Pro" duration="00:00:00.0005201" startTime="2026-09-19T23:57:07.8909860+04:00" endTime="2026-09-19T23:57:07.8909860+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2eb63164-b11d-41da-9be3-d0575aa7ae59" />
+    <UnitTestResult executionId="b9e68327-b5e9-46df-bfdc-abbec3158ce4" testId="3f114ca9-0337-2418-9504-962d878660a6" testName="Erp.Domain.Tests.DomainInvariantTests.JournalEntryMustBalanceBeforePosting" computerName="Abdos-MacBook-Pro" duration="00:00:00.0011897" startTime="2026-09-19T23:57:07.9119300+04:00" endTime="2026-09-19T23:57:07.9119300+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b9e68327-b5e9-46df-bfdc-abbec3158ce4" />
+    <UnitTestResult executionId="e07cd56f-e025-4ada-ad49-c1259a097c10" testId="b8f0ac1b-1fcc-28f7-e023-174089414031" testName="Erp.Domain.Tests.DomainInvariantTests.PaymentCannotAllocateMoreThanItsAmount" computerName="Abdos-MacBook-Pro" duration="00:00:00.0030610" startTime="2026-09-19T23:57:07.8879820+04:00" endTime="2026-09-19T23:57:07.8879820+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e07cd56f-e025-4ada-ad49-c1259a097c10" />
+    <UnitTestResult executionId="ca78e1ae-436f-4abd-9044-3153f8462784" testId="b4c9383d-d6ba-ea3d-bd78-f9a8c7df365e" testName="Erp.Domain.Tests.DomainInvariantTests.HeaderAccountsCannotUsePostingRoles" computerName="Abdos-MacBook-Pro" duration="00:00:00.0001051" startTime="2026-09-19T23:57:07.9118330+04:00" endTime="2026-09-19T23:57:07.9118330+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ca78e1ae-436f-4abd-9044-3153f8462784" />
+    <UnitTestResult executionId="f0c478ed-0a1c-4078-98b5-85a4fe8a266a" testId="3cf6a5aa-35e6-5793-c12f-2798f9af284b" testName="Erp.Domain.Tests.DomainInvariantTests.JournalLineRequiresExactlyOneDebitOrCredit" computerName="Abdos-MacBook-Pro" duration="00:00:00.0001050" startTime="2026-09-19T23:57:07.9119690+04:00" endTime="2026-09-19T23:57:07.9119690+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f0c478ed-0a1c-4078-98b5-85a4fe8a266a" />
+    <UnitTestResult executionId="f7d24fe4-0590-4f3b-b3d3-815d2661e851" testId="1ff0fd36-7faa-93ac-3328-2dc820a93094" testName="Erp.Domain.Tests.DomainInvariantTests.SalesInvoiceCannotBeChangedAfterPosting" computerName="Abdos-MacBook-Pro" duration="00:00:00.0008858" startTime="2026-09-19T23:57:07.9117260+04:00" endTime="2026-09-19T23:57:07.9117260+04:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f7d24fe4-0590-4f3b-b3d3-815d2661e851" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.PaymentCannotAllocateMoreThanItsAmount" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="b8f0ac1b-1fcc-28f7-e023-174089414031">
+      <Execution id="e07cd56f-e025-4ada-ad49-c1259a097c10" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="PaymentCannotAllocateMoreThanItsAmount" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.InventoryBalanceRejectsMovementsThatWouldMakeStockNegative" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="1925bc6a-da50-77c7-ab05-69238d10baea">
+      <Execution id="d76a83a4-4847-498b-846a-17c20c37eb04" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="InventoryBalanceRejectsMovementsThatWouldMakeStockNegative" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.ReceiptInventoryMovementRequiresPositiveQuantity" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="1d154162-19d1-7d20-02ee-0f3ff96fd3b6">
+      <Execution id="40bd61e6-e581-43d3-ae26-73ca0e1883c2" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="ReceiptInventoryMovementRequiresPositiveQuantity" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.RolePermissionReplacementRemovesOnlyThePreviousPermissionSet" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="4f51923e-ed24-0073-cc51-771ec42ecbf3">
+      <Execution id="7bf237e2-9371-4ebb-b59c-6dbbd956cd36" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="RolePermissionReplacementRemovesOnlyThePreviousPermissionSet" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.UserRoleReplacementAffectsOnlyTheSelectedCompany" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="4740e707-7861-115e-3c15-95d5bbc63590">
+      <Execution id="d7807737-d5d8-467c-afc7-725f733390b4" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="UserRoleReplacementAffectsOnlyTheSelectedCompany" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.JournalEntryMustBalanceBeforePosting" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="3f114ca9-0337-2418-9504-962d878660a6">
+      <Execution id="b9e68327-b5e9-46df-bfdc-abbec3158ce4" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="JournalEntryMustBalanceBeforePosting" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.PostingAccountCannotBeUsedAsAnAccountHierarchyParent" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="2a50e2db-7c96-f685-6677-38ece35d4b64">
+      <Execution id="879accda-1c6e-4de0-9214-c9136bd481c2" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="PostingAccountCannotBeUsedAsAnAccountHierarchyParent" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.AccountHierarchyRejectsDifferentChildAccountTypes" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="ec953a4e-ea9d-7470-e726-b3cf5c1cd0ca">
+      <Execution id="3f8d97f9-3a85-453b-90a0-14b4eb997c19" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="AccountHierarchyRejectsDifferentChildAccountTypes" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.ExternalIdentityRequiresAUserAndProviderSubject" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="e6067056-c579-e36d-99a2-29c76b941546">
+      <Execution id="b4ad3868-69ea-476b-8895-b743acaae341" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="ExternalIdentityRequiresAUserAndProviderSubject" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.SalesInvoiceRejectsLinesInAnotherCurrency" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="4537338e-2020-344d-bce8-308a5b57c3ea">
+      <Execution id="7b5e2da6-7748-4423-94ce-ec4287637b46" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="SalesInvoiceRejectsLinesInAnotherCurrency" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.HeaderAccountsCannotUsePostingRoles" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="b4c9383d-d6ba-ea3d-bd78-f9a8c7df365e">
+      <Execution id="ca78e1ae-436f-4abd-9044-3153f8462784" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="HeaderAccountsCannotUsePostingRoles" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.JournalLineRequiresExactlyOneDebitOrCredit" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="3cf6a5aa-35e6-5793-c12f-2798f9af284b">
+      <Execution id="f0c478ed-0a1c-4078-98b5-85a4fe8a266a" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="JournalLineRequiresExactlyOneDebitOrCredit" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.PurchaseBillCannotBeChangedAfterPosting" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="f711d356-b346-fc0e-8c24-120f0fa54cba">
+      <Execution id="2399d282-d5e8-4cf7-8725-4b6a520d12fe" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="PurchaseBillCannotBeChangedAfterPosting" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.OutboundInventoryMovementRequiresANegativeQuantity" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="077ca687-c3f3-be4b-731c-ca9277f8cf27">
+      <Execution id="2eb63164-b11d-41da-9be3-d0575aa7ae59" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="OutboundInventoryMovementRequiresANegativeQuantity" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.AccountUsesAnExplicitNormalBalanceOverrideForContraAccounts" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="47acc59a-9d54-626e-4b35-fe365a2cceee">
+      <Execution id="2af071e2-fc99-49fa-a36a-148c8d660db1" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="AccountUsesAnExplicitNormalBalanceOverrideForContraAccounts" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.SalesInvoiceCannotBeChangedAfterPosting" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="1ff0fd36-7faa-93ac-3328-2dc820a93094">
+      <Execution id="f7d24fe4-0590-4f3b-b3d3-815d2661e851" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="SalesInvoiceCannotBeChangedAfterPosting" />
+    </UnitTest>
+    <UnitTest name="Erp.Domain.Tests.DomainInvariantTests.ChartOfAccountsRejectsDuplicateAccountCodes" storage="/users/abdoadel/documents/for test/erp/backend/tests/erp.domain.tests/bin/release/net8.0/erp.domain.tests.dll" id="1549473d-f8d4-911d-2fdd-5bbbe7f4d9c6">
+      <Execution id="a9560224-9828-46e9-9572-050a348bc4d0" />
+      <TestMethod codeBase="/Users/abdoadel/Documents/For Test/erp/backend/tests/Erp.Domain.Tests/bin/Release/net8.0/Erp.Domain.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Erp.Domain.Tests.DomainInvariantTests" name="ChartOfAccountsRejectsDuplicateAccountCodes" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="1925bc6a-da50-77c7-ab05-69238d10baea" executionId="d76a83a4-4847-498b-846a-17c20c37eb04" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="47acc59a-9d54-626e-4b35-fe365a2cceee" executionId="2af071e2-fc99-49fa-a36a-148c8d660db1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2a50e2db-7c96-f685-6677-38ece35d4b64" executionId="879accda-1c6e-4de0-9214-c9136bd481c2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4537338e-2020-344d-bce8-308a5b57c3ea" executionId="7b5e2da6-7748-4423-94ce-ec4287637b46" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4740e707-7861-115e-3c15-95d5bbc63590" executionId="d7807737-d5d8-467c-afc7-725f733390b4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ec953a4e-ea9d-7470-e726-b3cf5c1cd0ca" executionId="3f8d97f9-3a85-453b-90a0-14b4eb997c19" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4f51923e-ed24-0073-cc51-771ec42ecbf3" executionId="7bf237e2-9371-4ebb-b59c-6dbbd956cd36" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1549473d-f8d4-911d-2fdd-5bbbe7f4d9c6" executionId="a9560224-9828-46e9-9572-050a348bc4d0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f711d356-b346-fc0e-8c24-120f0fa54cba" executionId="2399d282-d5e8-4cf7-8725-4b6a520d12fe" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1d154162-19d1-7d20-02ee-0f3ff96fd3b6" executionId="40bd61e6-e581-43d3-ae26-73ca0e1883c2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e6067056-c579-e36d-99a2-29c76b941546" executionId="b4ad3868-69ea-476b-8895-b743acaae341" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="077ca687-c3f3-be4b-731c-ca9277f8cf27" executionId="2eb63164-b11d-41da-9be3-d0575aa7ae59" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3f114ca9-0337-2418-9504-962d878660a6" executionId="b9e68327-b5e9-46df-bfdc-abbec3158ce4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b8f0ac1b-1fcc-28f7-e023-174089414031" executionId="e07cd56f-e025-4ada-ad49-c1259a097c10" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b4c9383d-d6ba-ea3d-bd78-f9a8c7df365e" executionId="ca78e1ae-436f-4abd-9044-3153f8462784" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3cf6a5aa-35e6-5793-c12f-2798f9af284b" executionId="f0c478ed-0a1c-4078-98b5-85a4fe8a266a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1ff0fd36-7faa-93ac-3328-2dc820a93094" executionId="f7d24fe4-0590-4f3b-b3d3-815d2661e851" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="17" executed="17" passed="17" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.19)
+[xUnit.net 00:00:00.09]   Discovering: Erp.Domain.Tests
+[xUnit.net 00:00:00.13]   Discovered:  Erp.Domain.Tests
+[xUnit.net 00:00:00.14]   Starting:    Erp.Domain.Tests
+[xUnit.net 00:00:00.20]   Finished:    Erp.Domain.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

@@ -1,0 +1,21 @@
+import { formatAmount } from '../../shared/utils/display-format';
+import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+
+import { Partner } from '../master-data/master-data.models';
+import { MasterDataService } from '../master-data/master-data.service';
+import { SupplierPayable } from './purchase.models';
+import { PurchaseService } from './purchase.service';
+
+@Component({ selector: 'app-payables', standalone: true, imports: [CommonModule, FormsModule, RouterLink], styleUrl: '../payments/payments.component.scss', template: `
+<section class="payments-page"><header class="page-heading"><div><span class="eyebrow">Accounts payable</span><h1>Supplier payables</h1><p>Open and settled purchase bills derived from posted operational transactions.</p></div><a routerLink="/supplier-payments" class="primary-action">Record supplier payment</a></header><section class="filters"><select [(ngModel)]="supplierId"><option value="">All suppliers</option><option *ngFor="let supplier of suppliers" [value]="supplier.id">{{ supplier.code }} — {{ supplier.legalName }}</option></select><select [(ngModel)]="openState"><option value="true">Open</option><option value="false">Closed</option><option value="">All</option></select><select [(ngModel)]="overdue"><option value="">All due statuses</option><option value="true">Overdue</option></select><input type="date" [(ngModel)]="fromDate"><input type="date" [(ngModel)]="toDate"><button type="button" (click)="load()">Apply</button><button type="button" class="quiet" (click)="clear()">Clear</button></section><div class="notice error" *ngIf="errorMessage">{{ errorMessage }}</div><section class="table-card"><div class="loading" *ngIf="isLoading">Loading accounts payable…</div><table *ngIf="!isLoading"><thead><tr><th>Supplier</th><th>Purchase bill</th><th>Bill / due date</th><th>Original</th><th>Paid</th><th>Outstanding</th><th>Status</th></tr></thead><tbody><tr *ngFor="let item of items"><td>{{ item.supplierName }}<small>{{ item.supplierCode }}</small></td><td><a *ngIf="item.purchaseBillId" [routerLink]="['/purchases', item.purchaseBillId]">{{ item.purchaseBillNumber }}</a><span *ngIf="!item.purchaseBillId">{{ item.purchaseBillNumber }}</span><small>{{ item.supplierReference || '—' }}</small></td><td>{{ item.billDate ? (item.billDate | date) : '—' }}<small [class.overdue]="item.isOverdue">{{ item.dueDate ? (item.dueDate | date) : 'No due date' }}</small></td><td>{{ formatAmount(item.originalAmount, item.currencyCode) }}</td><td>{{ formatAmount(item.paidAmount, item.currencyCode) }}</td><td>{{ formatAmount(item.outstandingAmount, item.currencyCode) }}</td><td><span class="status" [class.posted]="item.paymentStatus === 'Paid'">{{ item.paymentStatus }}</span></td></tr><tr *ngIf="items.length === 0"><td colspan="7" class="empty">No payables match these filters.</td></tr></tbody></table></section></section>` })
+export class PayablesComponent implements OnInit {
+  items: SupplierPayable[] = []; suppliers: Partner[] = []; supplierId = ''; openState = 'true'; overdue = ''; fromDate = ''; toDate = ''; isLoading = true; errorMessage = '';
+  constructor(private readonly purchases: PurchaseService, private readonly masterData: MasterDataService) {}
+  ngOnInit(): void { this.masterData.list<Partner>('suppliers', { isActive: true, pageNumber: 1, pageSize: 100 }).subscribe({ next: page => this.suppliers = page.items }); this.load(); }
+  load(): void { this.isLoading = true; this.purchases.listPayables({ supplierId: this.supplierId, isOpen: this.openState || undefined, isOverdue: this.overdue || undefined, fromDate: this.fromDate, toDate: this.toDate, pageNumber: 1, pageSize: 100 }).subscribe({ next: page => { this.items = page.items; this.isLoading = false; }, error: () => { this.errorMessage = 'We could not load accounts payable.'; this.isLoading = false; } }); }
+  clear(): void { this.supplierId = ''; this.openState = 'true'; this.overdue = ''; this.fromDate = ''; this.toDate = ''; this.load(); }
+  formatAmount(amount: number, currency: string): string { return `${currency} ${formatAmount(amount)}`; }
+}

@@ -1,0 +1,1355 @@
+Sanitized source context for manual Google Login implementation.
+Sensitive password and JWT signing-key values are redacted; configuration key names are retained.
+
+===== backend/src/Erp.Application/Authentication/AuthenticationContracts.cs =====
+
+namespace Erp.Application.Authentication;
+
+public sealed record AuthenticatedUser(
+    Guid Id,
+    string DisplayName,
+    string Email,
+    IReadOnlyCollection<string> Roles,
+    IReadOnlyCollection<string> Permissions,
+    IReadOnlyCollection<Guid> CompanyIds);
+
+public sealed record AccessToken(string Value, DateTimeOffset ExpiresAt);
+
+public sealed record AuthenticationResult(AccessToken AccessToken, AuthenticatedUser User);
+
+public interface IAuthenticationService
+{
+    Task<AuthenticationResult?> LoginAsync(string email, string password, CancellationToken cancellationToken = default);
+
+    Task<AuthenticatedUser?> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default);
+}
+
+public interface IUserAuthenticationStore
+{
+    Task<UserAuthenticationRecord?> FindByEmailAsync(string email, CancellationToken cancellationToken = default);
+
+    Task<AuthenticatedUser?> FindActiveUserAsync(Guid userId, CancellationToken cancellationToken = default);
+}
+
+public interface IPasswordHashingService
+{
+    string Hash(string password);
+
+    bool Verify(string passwordHash, string password);
+}
+
+public interface IAccessTokenService
+{
+    AccessToken Create(AuthenticatedUser user);
+}
+
+public sealed record UserAuthenticationRecord(AuthenticatedUser User, string PasswordHash);
+
+===== backend/src/Erp.Application/Authentication/AuthenticationService.cs =====
+
+namespace Erp.Application.Authentication;
+
+public sealed class AuthenticationService(
+    IUserAuthenticationStore userAuthenticationStore,
+    IPasswordHashingService passwordHashingService,
+    IAccessTokenService accessTokenService) : IAuthenticationService
+{
+    public async Task<AuthenticationResult?> LoginAsync(
+        string email,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            return null;
+        }
+
+        var userRecord = await userAuthenticationStore.FindByEmailAsync(
+            email.Trim().ToLowerInvariant(),
+            cancellationToken);
+
+        if (userRecord is null || !passwordHashingService.Verify(userRecord.PasswordHash, password))
+        {
+            return null;
+        }
+
+        return new AuthenticationResult(accessTokenService.Create(userRecord.User), userRecord.User);
+    }
+
+    public Task<AuthenticatedUser?> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return userId == Guid.Empty
+            ? Task.FromResult<AuthenticatedUser?>(null)
+            : userAuthenticationStore.FindActiveUserAsync(userId, cancellationToken);
+    }
+}
+
+===== backend/src/Erp.Application/Authentication/ErpPermissions.cs =====
+
+namespace Erp.Application.Authentication;
+
+public static class ErpPermissions
+{
+    public const string CustomersView = "customers.view";
+    public const string CustomersManage = "customers.manage";
+    public const string ProductsView = "products.view";
+    public const string ProductsManage = "products.manage";
+    public const string InventoryView = "inventory.view";
+    public const string InventoryManage = "inventory.manage";
+    public const string ManufacturingView = "manufacturing.view";
+    public const string ManufacturingManage = "manufacturing.manage";
+    public const string SalesView = "sales.view";
+    public const string SalesManage = "sales.manage";
+    public const string PaymentsView = "payments.view";
+    public const string PaymentsManage = "payments.manage";
+    public const string ReceivablesView = "receivables.view";
+    public const string CashBankManage = "cash-bank.manage";
+    public const string PurchasesView = "purchases.view";
+    public const string PurchasesManage = "purchases.manage";
+    public const string PayablesView = "payables.view";
+    public const string PayablesManage = "payables.manage";
+    public const string SupplierPaymentsView = "supplierpayments.view";
+    public const string SupplierPaymentsManage = "supplierpayments.manage";
+    public const string AccountingView = "accounting.view";
+    public const string AccountingManage = "accounting.manage";
+    public const string JournalsView = "journals.view";
+    public const string JournalsManage = "journals.manage";
+    public const string JournalsPost = "journals.post";
+    public const string ChartOfAccountsManage = "chartofaccounts.manage";
+    public const string AccountingConfigurationManage = "accountingconfiguration.manage";
+    public const string DocumentsView = "documents.view";
+    public const string DocumentsManage = "documents.manage";
+    public const string ReportsView = "reports.view";
+    public const string FinancialReportsView = "financialreports.view";
+    public const string FinancialReportsExport = "financialreports.export";
+    public const string UsersManage = "users.manage";
+    public const string DevelopmentReset = "development.reset";
+
+    public static IReadOnlyCollection<string> All { get; } =
+    [
+        CustomersView,
+        CustomersManage,
+        ProductsView,
+        ProductsManage,
+        InventoryView,
+        InventoryManage,
+        ManufacturingView,
+        ManufacturingManage,
+        SalesView,
+        SalesManage,
+        PaymentsView,
+        PaymentsManage,
+        ReceivablesView,
+        CashBankManage,
+        PurchasesView,
+        PurchasesManage,
+        PayablesView,
+        PayablesManage,
+        SupplierPaymentsView,
+        SupplierPaymentsManage,
+        AccountingView,
+        AccountingManage,
+        JournalsView,
+        JournalsManage,
+        JournalsPost,
+        ChartOfAccountsManage,
+        AccountingConfigurationManage,
+        DocumentsView,
+        DocumentsManage,
+        ReportsView,
+        FinancialReportsView,
+        FinancialReportsExport,
+        UsersManage,
+        DevelopmentReset
+    ];
+}
+
+public static class AuthorizationClaimTypes
+{
+    public const string Permission = "permission";
+
+    public const string CompanyId = "company_id";
+}
+
+public static class PermissionPolicies
+{
+    public static string For(string permission) => $"permission:{permission}";
+}
+
+===== backend/src/Erp.Infrastructure/Authentication/EfUserAuthenticationStore.cs =====
+
+using Erp.Application.Authentication;
+using Erp.Domain.Identity;
+using Erp.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace Erp.Infrastructure.Authentication;
+
+public sealed class EfUserAuthenticationStore(ErpDbContext dbContext) : IUserAuthenticationStore
+{
+    public async Task<UserAuthenticationRecord?> FindByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var user = await dbContext.Users
+            .AsNoTracking()
+            .SingleOrDefaultAsync(candidate => candidate.Email == email && candidate.IsActive, cancellationToken);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        var credential = await dbContext.UserCredentials
+            .AsNoTracking()
+            .SingleOrDefaultAsync(candidate => candidate.UserId == user.Id, cancellationToken);
+
+        if (credential is null)
+        {
+            return null;
+        }
+
+        var authenticatedUser = await BuildAuthenticatedUserAsync(user, cancellationToken);
+
+        return authenticatedUser is null
+            ? null
+            : new UserAuthenticationRecord(authenticatedUser, credential.PasswordHash);
+    }
+
+    public async Task<AuthenticatedUser?> FindActiveUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await dbContext.Users
+            .AsNoTracking()
+            .SingleOrDefaultAsync(candidate => candidate.Id == userId && candidate.IsActive, cancellationToken);
+
+        return user is null ? null : await BuildAuthenticatedUserAsync(user, cancellationToken);
+    }
+
+    private async Task<AuthenticatedUser?> BuildAuthenticatedUserAsync(User user, CancellationToken cancellationToken)
+    {
+        var assignments = await dbContext.UserRoleAssignments
+            .AsNoTracking()
+            .Where(assignment => assignment.UserId == user.Id)
+            .Join(
+                dbContext.Roles.AsNoTracking().Where(role => role.IsActive),
+                assignment => assignment.RoleId,
+                role => role.Id,
+                (assignment, role) => new { assignment.CompanyId, role.Id, role.Name })
+            .ToListAsync(cancellationToken);
+
+        var roleIds = assignments.Select(assignment => assignment.Id).Distinct().ToArray();
+        var permissions = roleIds.Length == 0
+            ? Array.Empty<string>()
+            : await dbContext.RolePermissions
+                .AsNoTracking()
+                .Where(rolePermission => roleIds.Contains(rolePermission.RoleId))
+                .Join(
+                    dbContext.Permissions.AsNoTracking().Where(permission => permission.IsActive),
+                    rolePermission => rolePermission.PermissionId,
+                    permission => permission.Id,
+                    (_, permission) => permission.Key)
+                .Distinct()
+                .OrderBy(permission => permission)
+                .ToArrayAsync(cancellationToken);
+
+        return new AuthenticatedUser(
+            user.Id,
+            user.DisplayName,
+            user.Email,
+            assignments.Select(assignment => assignment.Name).Distinct().OrderBy(name => name).ToArray(),
+            permissions,
+            assignments.Select(assignment => assignment.CompanyId).Distinct().OrderBy(companyId => companyId).ToArray());
+    }
+}
+
+===== backend/src/Erp.Api/Contracts/Authentication/AuthenticationResponses.cs =====
+
+using Erp.Application.Authentication;
+
+namespace Erp.Api.Contracts.Authentication;
+
+public sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiresAt, CurrentUserResponse User)
+{
+    public static LoginResponse From(AuthenticationResult result) => new(
+        result.AccessToken.Value,
+        result.AccessToken.ExpiresAt,
+        CurrentUserResponse.From(result.User));
+}
+
+public sealed record CurrentUserResponse(
+    Guid Id,
+    string DisplayName,
+    string Email,
+    IReadOnlyCollection<string> Roles,
+    IReadOnlyCollection<string> Permissions,
+    IReadOnlyCollection<Guid> CompanyIds)
+{
+    public static CurrentUserResponse From(AuthenticatedUser user) => new(
+        user.Id,
+        user.DisplayName,
+        user.Email,
+        user.Roles,
+        user.Permissions,
+        user.CompanyIds);
+}
+
+===== backend/src/Erp.Api/Controllers/AuthController.cs =====
+
+using System.Security.Claims;
+using Erp.Api.Authentication;
+using Erp.Api.Contracts.Authentication;
+using Erp.Application.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Erp.Api.Controllers;
+
+[ApiController]
+[Route("api/auth")]
+[Tags("Authentication")]
+public sealed class AuthController(IAuthenticationService authenticationService) : ControllerBase
+{
+    [AllowAnonymous]
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<LoginResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
+    {
+        var authenticationResult = await authenticationService.LoginAsync(request.Email, request.Password, cancellationToken);
+
+        if (authenticationResult is null)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Invalid email or password.",
+                Instance = HttpContext.Request.Path
+            });
+        }
+
+        return Ok(LoginResponse.From(authenticationResult));
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(CurrentUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<CurrentUserResponse>> GetCurrentUser(CancellationToken cancellationToken)
+    {
+        var userIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!Guid.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var user = await authenticationService.GetCurrentUserAsync(userId, cancellationToken);
+
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var roles = User.FindAll(ClaimTypes.Role)
+            .Select(claim => claim.Value)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(role => role)
+            .ToArray();
+        var permissions = User.FindAll(AuthorizationClaimTypes.Permission)
+            .Select(claim => claim.Value)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(permission => permission)
+            .ToArray();
+        var companyIds = User.FindAll(AuthorizationClaimTypes.CompanyId)
+            .Select(claim => Guid.TryParse(claim.Value, out var companyId) ? companyId : Guid.Empty)
+            .Where(companyId => companyId != Guid.Empty)
+            .Distinct()
+            .OrderBy(companyId => companyId)
+            .ToArray();
+
+        return Ok(new CurrentUserResponse(
+            user.Id,
+            user.DisplayName,
+            user.Email,
+            roles,
+            permissions,
+            companyIds));
+    }
+}
+
+===== backend/src/Erp.Api/Authentication/AuthenticationServiceCollectionExtensions.cs =====
+
+using System.Security.Claims;
+using System.Text;
+using Erp.Application.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+
+namespace Erp.Api.Authentication;
+
+public static class AuthenticationServiceCollectionExtensions
+{
+    public static IServiceCollection AddErpAuthentication(this IServiceCollection services, IConfiguration configuration)
+    {
+        var options = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+        Validate(options);
+
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.AddScoped<IAccessTokenService, JwtAccessTokenService>();
+        services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(jwtOptions =>
+            {
+                jwtOptions.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SigningKey)),
+                    ValidateIssuer = true,
+                    ValidIssuer = options.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = options.Audience,
+                    ValidateLifetime = true,
+                    RequireExpirationTime = true,
+                    RequireSignedTokens = true,
+                    ClockSkew = TimeSpan.FromMinutes(1),
+                    NameClaimType = ClaimTypes.Name,
+                    RoleClaimType = ClaimTypes.Role
+                };
+            });
+        services.AddAuthorization(authorizationOptions =>
+        {
+            foreach (var permission in ErpPermissions.All)
+            {
+                authorizationOptions.AddPolicy(
+                    PermissionPolicies.For(permission),
+                    policy => policy.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(permission)));
+            }
+        });
+
+        return services;
+    }
+
+    private static void Validate(JwtOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.Issuer) || string.IsNullOrWhiteSpace(options.Audience))
+        {
+            throw new InvalidOperationException("Authentication:Jwt:Issuer and Authentication:Jwt:Audience must be configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.SigningKey) || options.SigningKey.Length < 32)
+        {
+            throw new InvalidOperationException("Authentication:Jwt:SigningKey must be configured with at least 32 characters.");
+        }
+
+        if (options.ExpirationMinutes is < 5 or > 480)
+        {
+            throw new InvalidOperationException("Authentication:Jwt:ExpirationMinutes must be between 5 and 480.");
+        }
+    }
+}
+
+===== backend/src/Erp.Infrastructure/Persistence/ErpDbContext.cs =====
+
+using Erp.Domain.Accounting;
+using Erp.Domain.Identity;
+using Erp.Domain.Inventory;
+using Erp.Domain.Documents;
+using Erp.Domain.MasterData;
+using Erp.Domain.Manufacturing;
+using Erp.Domain.Organizations;
+using Erp.Domain.Payments;
+using Erp.Domain.Purchasing;
+using Erp.Domain.Sales;
+using Erp.Infrastructure.Authentication;
+using Microsoft.EntityFrameworkCore;
+
+namespace Erp.Infrastructure.Persistence;
+
+public sealed class ErpDbContext(DbContextOptions<ErpDbContext> options) : DbContext(options)
+{
+    public DbSet<Organization> Organizations => Set<Organization>();
+
+    public DbSet<Company> Companies => Set<Company>();
+
+    public DbSet<User> Users => Set<User>();
+
+    public DbSet<Role> Roles => Set<Role>();
+
+    public DbSet<Permission> Permissions => Set<Permission>();
+
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
+    public DbSet<UserRoleAssignment> UserRoleAssignments => Set<UserRoleAssignment>();
+
+    public DbSet<UserCredential> UserCredentials => Set<UserCredential>();
+
+    public DbSet<BusinessPartner> BusinessPartners => Set<BusinessPartner>();
+
+    public DbSet<CustomerProfile> CustomerProfiles => Set<CustomerProfile>();
+
+    public DbSet<SupplierProfile> SupplierProfiles => Set<SupplierProfile>();
+
+    public DbSet<Product> Products => Set<Product>();
+
+    public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
+
+    public DbSet<UnitOfMeasure> UnitsOfMeasure => Set<UnitOfMeasure>();
+
+    public DbSet<TaxCode> TaxCodes => Set<TaxCode>();
+
+    public DbSet<Currency> Currencies => Set<Currency>();
+
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+
+    public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
+
+    public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
+
+    public DbSet<BillOfMaterials> BillsOfMaterials => Set<BillOfMaterials>();
+
+    public DbSet<BillOfMaterialsComponent> BillOfMaterialsComponents => Set<BillOfMaterialsComponent>();
+
+    public DbSet<ProductionOrder> ProductionOrders => Set<ProductionOrder>();
+
+    public DbSet<ProductionOrderMaterial> ProductionOrderMaterials => Set<ProductionOrderMaterial>();
+
+    public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
+
+    public DbSet<SalesInvoiceLine> SalesInvoiceLines => Set<SalesInvoiceLine>();
+
+    public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
+
+    public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines => Set<PurchaseInvoiceLine>();
+
+    public DbSet<Payment> Payments => Set<Payment>();
+
+    public DbSet<PaymentAllocation> PaymentAllocations => Set<PaymentAllocation>();
+
+    public DbSet<DocumentAttachment> DocumentAttachments => Set<DocumentAttachment>();
+
+    public DbSet<ChartOfAccounts> ChartsOfAccounts => Set<ChartOfAccounts>();
+
+    public DbSet<Account> Accounts => Set<Account>();
+
+    public DbSet<FinancialClass> FinancialClasses => Set<FinancialClass>();
+
+    public DbSet<AccountingPeriod> AccountingPeriods => Set<AccountingPeriod>();
+
+    public DbSet<CashBankAccount> CashBankAccounts => Set<CashBankAccount>();
+
+    public DbSet<PostingProfile> PostingProfiles => Set<PostingProfile>();
+
+    public DbSet<PostingProfileEntry> PostingProfileEntries => Set<PostingProfileEntry>();
+
+    public DbSet<AccountingTransaction> AccountingTransactions => Set<AccountingTransaction>();
+
+    public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
+
+    public DbSet<JournalEntryLine> JournalEntryLines => Set<JournalEntryLine>();
+
+    public DbSet<OpenItem> OpenItems => Set<OpenItem>();
+
+    public DbSet<GeneralLedgerEntry> GeneralLedgerEntries => Set<GeneralLedgerEntry>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema("erp");
+        modelBuilder.HasSequence<long>("customer_code_sequence");
+        modelBuilder.HasSequence<long>("supplier_code_sequence");
+        modelBuilder.HasSequence<long>("product_sku_sequence");
+        modelBuilder.HasSequence<long>("warehouse_code_sequence");
+        modelBuilder.HasSequence<long>("inventory_movement_number_sequence");
+        modelBuilder.HasSequence<long>("bill_of_material_code_sequence");
+        modelBuilder.HasSequence<long>("production_order_number_sequence");
+        modelBuilder.HasSequence<long>("sales_invoice_number_sequence");
+        modelBuilder.HasSequence<long>("customer_payment_number_sequence");
+        modelBuilder.HasSequence<long>("purchase_invoice_number_sequence");
+        modelBuilder.HasSequence<long>("supplier_payment_number_sequence");
+        modelBuilder.HasSequence<long>("journal_entry_number_sequence");
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ErpDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
+    }
+}
+
+===== backend/src/Erp.Infrastructure/Persistence/Configurations/IdentityConfigurations.cs =====
+
+using Erp.Domain.Identity;
+using Erp.Domain.Organizations;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Erp.Infrastructure.Persistence.Configurations;
+
+internal sealed class PermissionConfiguration : IEntityTypeConfiguration<Permission>
+{
+    public void Configure(EntityTypeBuilder<Permission> builder)
+    {
+        builder.ConfigureEntity("permissions");
+        builder.Property(permission => permission.Key).HasMaxLength(150).IsRequired();
+        builder.Property(permission => permission.Name).HasMaxLength(150).IsRequired();
+        builder.Property(permission => permission.Description).HasMaxLength(500);
+        builder.Property(permission => permission.IsActive).IsRequired();
+        builder.HasIndex(permission => permission.Key).IsUnique();
+    }
+}
+
+internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
+{
+    public void Configure(EntityTypeBuilder<Role> builder)
+    {
+        builder.ConfigureEntity("roles");
+        builder.Property(role => role.CompanyId).IsRequired();
+        builder.Property(role => role.Name).HasMaxLength(100).IsRequired();
+        builder.Property(role => role.Description).HasMaxLength(500);
+        builder.Property(role => role.IsActive).IsRequired();
+        builder.HasIndex(role => new { role.CompanyId, role.Name }).IsUnique();
+        builder.HasOne<Company>()
+            .WithMany()
+            .HasForeignKey(role => role.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(role => role.Permissions)
+            .WithOne()
+            .HasForeignKey(permission => permission.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(role => role.Permissions).UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+internal sealed class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermission>
+{
+    public void Configure(EntityTypeBuilder<RolePermission> builder)
+    {
+        builder.ConfigureEntity("role_permissions");
+        builder.Property(permission => permission.RoleId).IsRequired();
+        builder.Property(permission => permission.PermissionId).IsRequired();
+        builder.HasIndex(permission => new { permission.RoleId, permission.PermissionId }).IsUnique();
+        builder.HasOne<Permission>()
+            .WithMany()
+            .HasForeignKey(permission => permission.PermissionId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
+{
+    public void Configure(EntityTypeBuilder<User> builder)
+    {
+        builder.ConfigureEntity("users");
+        builder.Property(user => user.DisplayName).HasMaxLength(200).IsRequired();
+        builder.Property(user => user.Email).HasMaxLength(254).IsRequired();
+        builder.Property(user => user.IsActive).IsRequired();
+        builder.HasIndex(user => user.Email).IsUnique();
+        builder.HasMany(user => user.RoleAssignments)
+            .WithOne()
+            .HasForeignKey(assignment => assignment.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(user => user.RoleAssignments).UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+internal sealed class UserRoleAssignmentConfiguration : IEntityTypeConfiguration<UserRoleAssignment>
+{
+    public void Configure(EntityTypeBuilder<UserRoleAssignment> builder)
+    {
+        builder.ConfigureEntity("user_role_assignments");
+        builder.Property(assignment => assignment.UserId).IsRequired();
+        builder.Property(assignment => assignment.CompanyId).IsRequired();
+        builder.Property(assignment => assignment.RoleId).IsRequired();
+        builder.HasIndex(assignment => new { assignment.UserId, assignment.CompanyId, assignment.RoleId }).IsUnique();
+        builder.HasOne<Company>()
+            .WithMany()
+            .HasForeignKey(assignment => assignment.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Role>()
+            .WithMany()
+            .HasForeignKey(assignment => assignment.RoleId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+===== backend/src/Erp.Infrastructure/Persistence/Configurations/UserCredentialConfiguration.cs =====
+
+using Erp.Domain.Identity;
+using Erp.Infrastructure.Authentication;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Erp.Infrastructure.Persistence.Configurations;
+
+internal sealed class UserCredentialConfiguration : IEntityTypeConfiguration<UserCredential>
+{
+    public void Configure(EntityTypeBuilder<UserCredential> builder)
+    {
+        builder.ToTable("user_credentials");
+        builder.HasKey(credential => credential.Id);
+        builder.Property(credential => credential.Id).ValueGeneratedNever();
+        builder.Property(credential => credential.UserId).IsRequired();
+        builder.Property(credential => credential.PasswordHash).HasMaxLength(512).IsRequired();
+        builder.Property(credential => credential.PasswordChangedAt).IsRequired();
+        builder.HasIndex(credential => credential.UserId).IsUnique();
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(credential => credential.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+===== backend/src/Erp.Infrastructure/DependencyInjection/ServiceCollectionExtensions.cs =====
+
+using Erp.Application.Authentication;
+using Erp.Application.Accounting;
+using Erp.Application.MasterData;
+using Erp.Application.Inventory;
+using Erp.Application.Sales;
+using Erp.Application.Payments;
+using Erp.Application.Purchasing;
+using Erp.Application.Documents;
+using Erp.Application.Manufacturing;
+using Erp.Application.Administration;
+using Erp.Infrastructure.Authentication;
+using Erp.Infrastructure.Reporting;
+using Erp.Infrastructure.Documents;
+using Erp.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Erp.Infrastructure.DependencyInjection;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("PostgreSQL");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("The PostgreSQL connection string is not configured.");
+        }
+
+        services.AddDbContext<ErpDbContext>(options =>
+            options.UseNpgsql(
+                connectionString,
+                npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(ErpDbContext).Assembly.FullName)));
+        services.AddScoped<IUserAuthenticationStore, EfUserAuthenticationStore>();
+        services.AddScoped<IMasterDataService, EfMasterDataService>();
+        services.AddScoped<IInventoryService, EfInventoryService>();
+        services.AddScoped<IManufacturingService, EfManufacturingService>();
+        services.AddScoped<IAccountingService, EfAccountingService>();
+        services.AddScoped<IFinancialReportingService, EfFinancialReportingService>();
+        services.AddScoped<IFinancialReportExportService, FinancialReportExportService>();
+        services.AddScoped<IDocumentAttachmentService, EfDocumentAttachmentService>();
+        services.Configure<AttachmentStorageOptions>(configuration.GetSection(AttachmentStorageOptions.SectionName));
+        services.AddSingleton<IAttachmentStorage, LocalAttachmentStorage>();
+        services.AddScoped<ISalesService, EfSalesService>();
+        services.AddScoped<IPaymentService, EfPaymentService>();
+        services.AddScoped<IPurchaseService, EfPurchaseService>();
+        services.AddScoped<IAdministrationService, EfAdministrationService>();
+        services.AddScoped<IDevelopmentDataResetService, EfDevelopmentDataResetService>();
+        services.AddSingleton<IPasswordHashingService, PasswordHashingService>();
+        services.Configure<DevelopmentAdminOptions>(configuration.GetSection(DevelopmentAdminOptions.SectionName));
+        services.AddScoped<DevelopmentIdentitySeeder>();
+
+        return services;
+    }
+}
+
+===== frontend/src/app/core/auth/auth.service.ts =====
+
+import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
+import { BehaviorSubject, Observable, catchError, finalize, map, of, shareReplay, tap } from 'rxjs';
+
+import { ApiService } from '../services/api.service';
+import { CurrentUser, LoginCredentials, LoginResponse } from './auth.models';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private readonly tokenStorageKey = 'erp.access-token';
+  private readonly userSubject = new BehaviorSubject<CurrentUser | null>(null);
+  private restoreRequest?: Observable<CurrentUser | null>;
+  private sessionVersion = 0;
+
+  readonly user$ = this.userSubject.asObservable();
+
+  constructor(
+    private readonly api: ApiService,
+    private readonly router: Router
+  ) {}
+
+  get currentUser(): CurrentUser | null {
+    return this.userSubject.value;
+  }
+
+  get accessToken(): string | null {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(this.tokenStorageKey);
+  }
+
+  login(credentials: LoginCredentials): Observable<LoginResponse> {
+    return this.api.post<LoginResponse, LoginCredentials>('auth/login', credentials).pipe(
+      tap((response) => this.establishSession(response))
+    );
+  }
+
+  restoreSession(): Observable<CurrentUser | null> {
+    if (this.currentUser) {
+      return of(this.currentUser);
+    }
+
+    const accessToken = this.accessToken;
+    const sessionVersion = this.sessionVersion;
+
+    if (!accessToken) {
+      return of(null);
+    }
+
+    if (!this.restoreRequest) {
+      this.restoreRequest = this.api.get<CurrentUser>('auth/me').pipe(
+        map((user) => this.isCurrentSession(accessToken, sessionVersion) ? user : null),
+        tap((user) => {
+          if (user) {
+            this.userSubject.next(user);
+          }
+        }),
+        catchError(() => {
+          this.clearSession();
+          return of(null);
+        }),
+        finalize(() => {
+          if (this.sessionVersion === sessionVersion) {
+            this.restoreRequest = undefined;
+          }
+        }),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+
+    return this.restoreRequest;
+  }
+
+  logout(): void {
+    this.clearSession();
+    void this.router.navigate(['/login'], { replaceUrl: true });
+  }
+
+  handleUnauthorized(): void {
+    this.clearSession();
+    void this.router.navigate(['/login'], { replaceUrl: true });
+  }
+
+  private establishSession(response: LoginResponse): void {
+    sessionStorage.setItem(this.tokenStorageKey, response.accessToken);
+    this.userSubject.next(response.user);
+  }
+
+  private clearSession(): void {
+    this.sessionVersion += 1;
+    this.restoreRequest = undefined;
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(this.tokenStorageKey);
+    }
+
+    this.userSubject.next(null);
+  }
+
+  private isCurrentSession(accessToken: string, sessionVersion: number): boolean {
+    return this.sessionVersion === sessionVersion && this.accessToken === accessToken;
+  }
+}
+
+===== frontend/src/app/core/auth/auth.models.ts =====
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface CurrentUser {
+  id: string;
+  displayName: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+  companyIds: string[];
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  expiresAt: string;
+  user: CurrentUser;
+}
+
+===== frontend/src/app/app.routes.ts =====
+
+import { Routes } from '@angular/router';
+
+import { authGuard, loginGuard } from './core/auth/auth.guard';
+import { AppShellComponent } from './layout/app-shell.component';
+
+export const routes: Routes = [
+  {
+    path: 'login',
+    canActivate: [loginGuard],
+    loadComponent: () => import('./features/auth/login/login.component').then((module) => module.LoginComponent)
+  },
+  {
+    path: '',
+    component: AppShellComponent,
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/dashboard/dashboard.component').then((module) => module.DashboardComponent)
+      },
+      {
+        path: 'customers/:id',
+        data: { kind: 'customers' },
+        loadComponent: () => import('./features/master-data/master-data-detail.component').then((module) => module.MasterDataDetailComponent)
+      },
+      {
+        path: 'customers',
+        data: { kind: 'customers' },
+        loadComponent: () => import('./features/master-data/master-data-page.component').then((module) => module.MasterDataPageComponent)
+      },
+      {
+        path: 'suppliers/:id',
+        data: { kind: 'suppliers' },
+        loadComponent: () => import('./features/master-data/master-data-detail.component').then((module) => module.MasterDataDetailComponent)
+      },
+      {
+        path: 'suppliers',
+        data: { kind: 'suppliers' },
+        loadComponent: () => import('./features/master-data/master-data-page.component').then((module) => module.MasterDataPageComponent)
+      },
+      {
+        path: 'products/categories',
+        data: { kind: 'categories' },
+        loadComponent: () => import('./features/master-data/master-data-page.component').then((module) => module.MasterDataPageComponent)
+      },
+      {
+        path: 'products/units',
+        data: { kind: 'units' },
+        loadComponent: () => import('./features/master-data/master-data-page.component').then((module) => module.MasterDataPageComponent)
+      },
+      {
+        path: 'products/:id',
+        data: { kind: 'products' },
+        loadComponent: () => import('./features/master-data/master-data-detail.component').then((module) => module.MasterDataDetailComponent)
+      },
+      {
+        path: 'products',
+        data: { kind: 'products' },
+        loadComponent: () => import('./features/master-data/master-data-page.component').then((module) => module.MasterDataPageComponent)
+      },
+      {
+        path: 'inventory/warehouses/:id',
+        loadComponent: () => import('./features/inventory/warehouse-detail.component').then((module) => module.WarehouseDetailComponent)
+      },
+      {
+        path: 'inventory/warehouses',
+        loadComponent: () => import('./features/inventory/warehouse-page.component').then((module) => module.WarehousePageComponent)
+      },
+      {
+        path: 'inventory/ledger',
+        loadComponent: () => import('./features/inventory/stock-ledger.component').then((module) => module.StockLedgerComponent)
+      },
+      {
+        path: 'inventory',
+        loadComponent: () => import('./features/inventory/inventory-overview.component').then((module) => module.InventoryOverviewComponent)
+      },
+      {
+        path: 'manufacturing/bills-of-materials',
+        data: { mode: 'boms' },
+        loadComponent: () => import('./features/manufacturing/manufacturing-list.component').then((module) => module.ManufacturingListComponent)
+      },
+      {
+        path: 'manufacturing/production-orders/:id',
+        loadComponent: () => import('./features/manufacturing/production-order-detail.component').then((module) => module.ProductionOrderDetailComponent)
+      },
+      {
+        path: 'manufacturing/production-orders',
+        data: { mode: 'orders' },
+        loadComponent: () => import('./features/manufacturing/manufacturing-list.component').then((module) => module.ManufacturingListComponent)
+      },
+      {
+        path: 'sales/:id',
+        loadComponent: () => import('./features/sales/sales-invoice-detail.component').then((module) => module.SalesInvoiceDetailComponent)
+      },
+      {
+        path: 'sales',
+        loadComponent: () => import('./features/sales/sales-invoice-list.component').then((module) => module.SalesInvoiceListComponent)
+      },
+      {
+        path: 'payments/:id',
+        loadComponent: () => import('./features/payments/payment-detail.component').then((module) => module.PaymentDetailComponent)
+      },
+      {
+        path: 'payments',
+        loadComponent: () => import('./features/payments/payment-list.component').then((module) => module.PaymentListComponent)
+      },
+      {
+        path: 'receivables',
+        loadComponent: () => import('./features/payments/receivables.component').then((module) => module.ReceivablesComponent)
+      },
+      {
+        path: 'purchases/:id',
+        loadComponent: () => import('./features/purchases/purchase-bill-detail.component').then((module) => module.PurchaseBillDetailComponent)
+      },
+      {
+        path: 'purchases',
+        loadComponent: () => import('./features/purchases/purchase-bill-list.component').then((module) => module.PurchaseBillListComponent)
+      },
+      {
+        path: 'supplier-payments/:id',
+        loadComponent: () => import('./features/purchases/supplier-payment-detail.component').then((module) => module.SupplierPaymentDetailComponent)
+      },
+      {
+        path: 'supplier-payments',
+        loadComponent: () => import('./features/purchases/supplier-payment-list.component').then((module) => module.SupplierPaymentListComponent)
+      },
+      {
+        path: 'payables',
+        loadComponent: () => import('./features/purchases/payables.component').then((module) => module.PayablesComponent)
+      },
+      {
+        path: 'accounting/journals',
+        data: { initialView: 'journals' },
+        loadComponent: () => import('./features/accounting/accounting-workspace.component').then((module) => module.AccountingWorkspaceComponent)
+      },
+      {
+        path: 'accounting',
+        loadComponent: () => import('./features/accounting/accounting-workspace.component').then((module) => module.AccountingWorkspaceComponent)
+      },
+      {
+        path: 'reports',
+        loadComponent: () => import('./features/reports/financial-reports.component').then((module) => module.FinancialReportsComponent)
+      },
+      {
+        path: 'administration',
+        loadComponent: () => import('./features/administration/administration.component').then((module) => module.AdministrationComponent)
+      },
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'dashboard'
+      }
+    ]
+  },
+  {
+    path: '**',
+    redirectTo: 'dashboard'
+  }
+];
+
+===== frontend/angular.json =====
+
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": {
+    "packageManager": "npm"
+  },
+  "newProjectRoot": "projects",
+  "projects": {
+    "erp-frontend": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": "dist/erp-frontend",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "src/favicon.ico",
+              "src/assets"
+            ],
+            "styles": [
+              "src/styles.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "7kb",
+                  "maximumError": "8kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.development.ts"
+                }
+              ]
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "erp-frontend:build:production"
+            },
+            "development": {
+              "buildTarget": "erp-frontend:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "erp-frontend:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "src/favicon.ico",
+              "src/assets"
+            ],
+            "styles": [
+              "src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    }
+  }
+}
+
+===== docker-compose.yml =====
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-erp}
+      POSTGRES_USER: ${POSTGRES_USER:-erp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-<redacted>}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__PostgreSQL: Host=postgres;Port=5432;Database=${POSTGRES_DB:-erp};Username=${POSTGRES_USER:-erp};Password=${POSTGRES_PASSWORD:-<redacted>}
+      Authentication__Jwt__Issuer: ${JWT_ISSUER:-erp-api}
+      Authentication__Jwt__Audience: ${JWT_AUDIENCE:-erp-web}
+      Authentication__Jwt__SigningKey: ${JWT_SIGNING_KEY:?<redacted>}
+      DevelopmentAdmin__Email: ${DEVELOPMENT_ADMIN_EMAIL:-}
+      DevelopmentAdmin__Password: ${DEVELOPMENT_ADMIN_PASSWORD:-}
+      Attachments__StoragePath: /app/data/attachments
+    ports:
+      - "5080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - attachments_data:/app/data/attachments
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  attachments_data:
+
+===== backend/Dockerfile =====
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY Erp.sln ./
+COPY src/Erp.Api/Erp.Api.csproj src/Erp.Api/
+COPY src/Erp.Application/Erp.Application.csproj src/Erp.Application/
+COPY src/Erp.Domain/Erp.Domain.csproj src/Erp.Domain/
+COPY src/Erp.Infrastructure/Erp.Infrastructure.csproj src/Erp.Infrastructure/
+COPY src/Erp.SharedKernel/Erp.SharedKernel.csproj src/Erp.SharedKernel/
+RUN dotnet restore src/Erp.Api/Erp.Api.csproj
+
+COPY src/ src/
+RUN dotnet publish src/Erp.Api/Erp.Api.csproj --configuration Release --output /app/publish --no-restore
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "Erp.Api.dll"]
+
+===== frontend/Dockerfile =====
+
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:1.27-alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist/erp-frontend/browser /usr/share/nginx/html
+EXPOSE 80
+
+===== backend/src/Erp.Infrastructure/Persistence/DesignTime/ErpDbContextFactory.cs =====
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+
+namespace Erp.Infrastructure.Persistence.DesignTime;
+
+public sealed class ErpDbContextFactory : IDesignTimeDbContextFactory<ErpDbContext>
+{
+    public ErpDbContext CreateDbContext(string[] args)
+    {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Set the ConnectionStrings__PostgreSQL environment variable before running Entity Framework Core commands.");
+        }
+
+        var optionsBuilder = new DbContextOptionsBuilder<ErpDbContext>();
+        optionsBuilder.UseNpgsql(
+            connectionString,
+            npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(ErpDbContext).Assembly.FullName));
+
+        return new ErpDbContext(optionsBuilder.Options);
+    }
+}
+
+===== README.md =====
+
+# ERP Phase 4
+
+This workspace contains the technical foundation, approved domain model, PostgreSQL persistence schema, JWT authentication, and the initial ERP application shell. Business workflows and feature modules are not implemented yet.
+
+## Run with Docker
+
+```bash
+cd erp
+cp .env.example .env
+# Edit .env with a random JWT signing key and your development administrator credentials.
+docker compose up --build
+```
+
+The frontend runs at `http://localhost:4200`, the API runs at `http://localhost:5080`, and Swagger is available at `http://localhost:5080/swagger`.
+
+## Run locally
+
+Start PostgreSQL with `docker compose up postgres` from `erp`. Supply the connection string through your shell or a local secrets mechanism, then run the API:
+
+```bash
+export ConnectionStrings__PostgreSQL='Host=localhost;Port=5432;Database=<database>;Username=<user>;Password=<password>'
+export Authentication__Jwt__Issuer='erp-api'
+export Authentication__Jwt__Audience='erp-web'
+export Authentication__Jwt__SigningKey='<random-value-with-at-least-32-characters>'
+export DevelopmentAdmin__Email='<your-development-admin-email>'
+export DevelopmentAdmin__Password='<your-development-admin-password>'
+dotnet run --project backend/src/Erp.Api
+```
+
+In another terminal, run the Angular app:
+
+```bash
+cd frontend
+npm start
+```
+
+## Verify
+
+```bash
+dotnet test backend/Erp.sln
+cd frontend && npm run build
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+
+## Database migrations
+
+The EF Core CLI is version-pinned as a local tool. After setting `ConnectionStrings__PostgreSQL`, run:
+
+```bash
+cd backend
+dotnet tool restore
+dotnet tool run dotnet-ef database update --project src/Erp.Infrastructure --startup-project src/Erp.Infrastructure
+```
+
+Production deployments must provide `ConnectionStrings__PostgreSQL` and an explicit `Cors__AllowedOrigins__0` value through environment-specific configuration. Do not commit credentials to application settings or source control.
+
+## Development administrator
+
+The API provisions a development-only `Administrator` role and the listed baseline permissions on startup when both `DevelopmentAdmin__Email` and `DevelopmentAdmin__Password` are configured. It also creates a `DEV` organization and company if they are absent.
+
+The supplied email and password are used only when the user has no credential record; restarting the API does not reset an existing password. This seeding mechanism never runs outside the Development environment.
+
+Sign in at `http://localhost:4200/login` with the credentials configured in `.env` or your local environment. The session uses a short-lived JWT stored in browser session storage; closing the browser session or selecting **Log out** clears it.
+
+===== backend/.config/dotnet-tools.json =====
+
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "dotnet-ef": {
+      "version": "8.0.11",
+      "commands": [
+        "dotnet-ef"
+      ],
+      "rollForward": false
+    }
+  }
+}+

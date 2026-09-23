@@ -1,0 +1,30 @@
+<div class="search-select" [class.open]="isOpen" [class.disabled]="disabled">
+  <input
+    type="text"
+    role="combobox"
+    autocomplete="off"
+    [value]="displayValue"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    [attr.aria-expanded]="isOpen"
+    aria-autocomplete="list"
+    [attr.aria-activedescendant]="activeIndex >= 0 ? 'search-select-option-' + activeIndex : null"
+    (focus)="open()"
+    (blur)="close()"
+    (input)="search(($any($event.target)).value)"
+    (keydown)="keydown($event)">
+  <button *ngIf="value && !disabled" type="button" class="clear" (mousedown)="$event.preventDefault()" (click)="clear()" aria-label="Clear selection">×</button>
+  <div *ngIf="isOpen" class="options" role="listbox">
+    <button
+      *ngFor="let option of filteredOptions; let index = index"
+      type="button"
+      role="option"
+      [id]="'search-select-option-' + index"
+      [attr.aria-selected]="option.id === value"
+      [class.active]="index === activeIndex"
+      (mousedown)="$event.preventDefault()"
+      (click)="select(option)">{{ option.label }}</button>
+    <p *ngIf="!filteredOptions.length">No matching options.</p>
+    <button *ngIf="!query && !value" type="button" class="empty-option" (mousedown)="$event.preventDefault()" (click)="clear()">{{ emptyLabel }}</button>
+  </div>
+</div>

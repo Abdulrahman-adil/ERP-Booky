@@ -1,0 +1,30 @@
+<section class="inventory-page" aria-labelledby="inventory-title">
+  <header class="page-header">
+    <div><p class="eyebrow">Inventory</p><h1 id="inventory-title">Stock control workspace</h1><p>Record controlled stock movements and review live warehouse availability.</p></div>
+    <div class="header-actions"><a class="secondary-button" routerLink="/inventory/warehouses">Warehouses</a><a class="primary-button" routerLink="/inventory/ledger" [queryParams]="{ action: 'StockIn' }">{{ canManage ? 'Record stock movement' : 'View stock ledger' }}</a></div>
+  </header>
+
+  <div *ngIf="isLoading" class="state-panel">Loading inventory operations…</div>
+  <p *ngIf="!isLoading && errorMessage" class="notice error" role="alert">{{ errorMessage }}</p>
+
+  <ng-container *ngIf="!isLoading && overview as data">
+    <section class="metric-grid" aria-label="Inventory summary">
+      <article><span>Active warehouses</span><strong>{{ data.activeWarehouseCount }}</strong><a routerLink="/inventory/warehouses">Manage warehouses</a></article>
+      <article><span>Stocked products</span><strong>{{ data.stockedProductCount }}</strong><a routerLink="/products">Review products</a></article>
+      <article><span>Posted movements</span><strong>{{ data.movementCount }}</strong><a routerLink="/inventory/ledger">Open ledger</a></article>
+    </section>
+
+    <section class="action-grid" *ngIf="canManage">
+      <a routerLink="/inventory/ledger" [queryParams]="{ action: 'OpeningBalance' }"><strong>Set opening stock</strong><span>Record the first quantity for a product in a warehouse.</span></a>
+      <a routerLink="/inventory/ledger" [queryParams]="{ action: 'StockIn' }"><strong>Receive stock</strong><span>Increase an existing warehouse balance.</span></a>
+      <a routerLink="/inventory/ledger" [queryParams]="{ action: 'StockOut' }"><strong>Issue stock</strong><span>Reduce on-hand stock without allowing a negative balance.</span></a>
+      <a routerLink="/inventory/ledger" [queryParams]="{ action: 'PositiveAdjustment' }"><strong>Adjust stock</strong><span>Record a counted correction with a mandatory reason.</span></a>
+    </section>
+
+    <section class="table-card">
+      <div class="card-heading"><div><h2>Recent stock movements</h2><p>Latest posted entries across all warehouses.</p></div><a class="text-link" routerLink="/inventory/ledger">View full ledger</a></div>
+      <div *ngIf="data.recentMovements.length === 0" class="state-panel empty"><strong>No stock movements yet</strong><span>Nothing is pre-populated. Create a warehouse and record opening stock when ready.</span><a *ngIf="canManage" class="secondary-button" routerLink="/inventory/warehouses">Create warehouse</a></div>
+      <div *ngIf="data.recentMovements.length" class="table-wrap"><table><thead><tr><th>Movement</th><th>Product</th><th>Warehouse</th><th>In</th><th>Out</th><th>Balance</th><th>Date</th></tr></thead><tbody><tr *ngFor="let movement of data.recentMovements"><td><strong>{{ movement.movementNumber }}</strong><span class="movement-type">{{ movementLabel(movement) }}</span><span *ngIf="movement.sourceModule === 'Sales'">Sales invoice · {{ movement.externalReference }}</span></td><td><a [routerLink]="['/products', movement.productId]">{{ movement.productName }}</a><span>{{ movement.productSku }}</span></td><td><a [routerLink]="['/inventory/warehouses', movement.warehouseId]">{{ movement.warehouseName }}</a><span>{{ movement.warehouseCode }}</span></td><td class="in">{{ movement.quantityIn || '—' }}</td><td class="out">{{ movement.quantityOut || '—' }}</td><td>{{ movement.balanceAfter ?? '—' }} {{ movement.unitOfMeasureName }}</td><td>{{ movement.occurredAt | date:'mediumDate' }}</td></tr></tbody></table></div>
+    </section>
+  </ng-container>
+</section>

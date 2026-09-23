@@ -1,0 +1,24 @@
+<section class="production-detail" aria-labelledby="production-order-title">
+  <a routerLink="/manufacturing/production-orders" class="back-link">← Production orders</a>
+  <div *ngIf="isLoading" class="state-panel">Loading production order…</div>
+  <p *ngIf="!isLoading && errorMessage" class="notice error" role="alert">{{ errorMessage }}</p>
+
+  <ng-container *ngIf="!isLoading && order as data">
+    <header class="page-header"><div><p class="eyebrow">Manufacturing · {{ statusLabel(data.status) }}</p><h1 id="production-order-title">{{ data.productionOrderNumber }}</h1><p>{{ data.finishedProductSku }} — {{ data.finishedProductName }} · planned {{ data.plannedQuantity }} {{ data.outputUnitOfMeasureName }}</p></div><span class="badge" [class.released]="data.status === 'Released'" [class.posted]="data.status === 'Completed'">{{ statusLabel(data.status) }}</span></header>
+    <p *ngIf="successMessage" class="notice success" role="status">{{ successMessage }}</p>
+
+    <section class="flow-card"><article><p>Inputs</p><strong>{{ data.sourceWarehouseName }}</strong><span>Raw materials warehouse</span></article><div class="flow-arrow" aria-hidden="true"><span>Materials</span>↓<span>Production</span></div><article class="output"><p>Output</p><strong>{{ data.destinationWarehouseName }}</strong><span>{{ data.finishedProductName }} · Finished goods</span></article></section>
+
+    <section class="detail-grid"><article><span>Bill of materials</span><strong>{{ data.billOfMaterialsCode }}</strong></article><article><span>Production date</span><strong>{{ data.productionDate | date:'mediumDate' }}</strong></article><article><span>Created by</span><strong>{{ data.createdByName }}</strong></article><article><span>Actual produced</span><strong>{{ data.actualProducedQuantity ?? '—' }} {{ data.outputUnitOfMeasureName }}</strong></article></section>
+
+    <section class="requirements-card"><div class="card-heading"><div><h2>Material requirements</h2><p>Required quantities scale from the locked formula. Availability is checked in {{ data.sourceWarehouseName }} before posting.</p></div><div *ngIf="data.status !== 'Completed'" class="actual-control"><label>Actual produced quantity<input type="number" min="0.000001" step="0.000001" [(ngModel)]="actualProducedQuantity" (change)="refreshRequirements()"></label><span>{{ data.outputUnitOfMeasureName }}</span></div></div>
+      <div *ngIf="!requirements.length" class="state-panel">Enter a positive actual quantity to calculate material requirements.</div>
+      <div *ngIf="requirements.length" class="table-wrap"><table><thead><tr><th>Material</th><th>Required</th><th>Available</th><th>Result</th></tr></thead><tbody><tr *ngFor="let requirement of requirements" [class.shortage]="!requirement.isAvailable"><td><strong>{{ requirement.componentName }}</strong><span>{{ requirement.componentSku }}</span></td><td>{{ requirement.requiredQuantity }} {{ requirement.unitOfMeasureName }}</td><td>{{ requirement.availableQuantity }} {{ requirement.unitOfMeasureName }}</td><td><span class="availability" [class.unavailable]="!requirement.isAvailable">{{ requirement.isAvailable ? 'Available' : 'Insufficient stock' }}</span></td></tr></tbody></table></div>
+    </section>
+
+    <section class="materials-card"><h2>Formula snapshot</h2><p>These quantities are retained with the order, so later formula edits do not change this production run.</p><ul><li *ngFor="let material of data.materials"><strong>{{ material.componentName }}</strong><span>{{ material.quantityPerBomOutput }} {{ material.unitOfMeasureName }} per {{ material.bomOutputQuantity }} {{ data.outputUnitOfMeasureName }}</span></li></ul></section>
+
+    <footer *ngIf="canManage && data.status !== 'Completed'" class="actions"><button *ngIf="data.status === 'Draft'" type="button" class="secondary-button" [disabled]="isPosting" (click)="release()">{{ isPosting ? 'Releasing…' : 'Release order' }}</button><button *ngIf="data.status === 'Released'" type="button" class="primary-button" [disabled]="isPosting || !canComplete" (click)="complete()">{{ isPosting ? 'Completing…' : 'Complete production' }}</button><span *ngIf="data.status === 'Released' && hasShortages" class="warning">Complete is disabled until all source-material stock is available.</span></footer>
+    <p *ngIf="data.status === 'Completed'" class="audit-note">Completed by {{ data.postedByName }} on {{ data.postedAt | date:'medium' }}. The inventory ledger retains the production consumption and receipt movements.</p>
+  </ng-container>
+</section>

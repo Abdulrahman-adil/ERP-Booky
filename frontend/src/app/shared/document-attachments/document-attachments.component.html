@@ -1,0 +1,16 @@
+<section class="attachments" aria-label="Attachments">
+  <header>
+    <div><strong>Attachments</strong><span>PDF, image, text, CSV, or XLSX — up to 10 MB</span></div>
+    <label *ngIf="canManage" class="upload-button">{{ isUploading ? 'Uploading…' : 'Add file' }}<input type="file" [disabled]="isUploading" accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.xlsx" (change)="upload($event)"></label>
+  </header>
+  <p *ngIf="message" class="message">{{ message }}</p>
+  <p *ngIf="isLoading" class="muted">Loading attachments…</p>
+  <p *ngIf="!isLoading && !attachments.length" class="muted">No files attached.</p>
+  <ul *ngIf="attachments.length">
+    <li *ngFor="let attachment of attachments">
+      <button type="button" class="file-link" (click)="download(attachment)">{{ attachment.originalFileName }}</button>
+      <span>{{ formatSize(attachment.fileSize) }} · {{ attachment.uploadedAt | date:'mediumDate' }}</span>
+      <button *ngIf="canDelete && canManage" type="button" class="delete-button" (click)="delete(attachment)">Delete</button>
+    </li>
+  </ul>
+</section>

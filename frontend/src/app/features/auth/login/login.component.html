@@ -1,0 +1,82 @@
+<main class="login-page">
+  <section class="login-panel" aria-labelledby="login-title">
+    <a class="brand" href="/login" aria-label="X sign in">
+      <span class="brand-mark">X</span>
+    </a>
+
+    <div class="intro">
+      <p class="eyebrow">Secure workspace</p>
+      <h1 id="login-title">Sign in to X</h1>
+      <p>
+        Use your organization account to access operations, finance, and
+        inventory tools.
+      </p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="signIn()" novalidate>
+      <div class="field">
+        <label for="email">Email address</label>
+        <input
+          id="email"
+          type="email"
+          autocomplete="email"
+          formControlName="email"
+          [attr.aria-invalid]="email.invalid && email.touched"
+        />
+        <small *ngIf="email.touched && email.hasError('required')"
+          >Enter your email address.</small
+        >
+        <small *ngIf="email.touched && email.hasError('email')"
+          >Enter a valid email address.</small
+        >
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          autocomplete="current-password"
+          formControlName="password"
+          [attr.aria-invalid]="password.invalid && password.touched"
+        />
+        <small *ngIf="password.touched && password.hasError('required')"
+          >Enter your password.</small
+        >
+        <small *ngIf="password.touched && password.hasError('minlength')"
+          >Passwords contain at least 8 characters.</small
+        >
+      </div>
+
+      <p *ngIf="errorMessage" class="form-error" role="alert">
+        {{ errorMessage }}
+      </p>
+
+      <button type="submit" [disabled]="isSubmitting">
+        <span *ngIf="!isSubmitting">Sign in</span>
+        <span *ngIf="isSubmitting">Signing in…</span>
+      </button>
+    </form>
+
+    <section aria-label="Google sign in">
+      <app-google-sign-in-button
+        (credentialReceived)="signInWithGoogle($event)"
+        (unavailable)="handleGoogleUnavailable($event)"
+      ></app-google-sign-in-button>
+    </section>
+
+    <p class="support">Contact your system administrator if you need access.</p>
+  </section>
+
+  <aside class="login-aside" aria-hidden="true">
+    <div class="aside-content">
+      <p class="eyebrow">Operational clarity</p>
+      <h2>A single workspace for the work that keeps your business moving.</h2>
+      <div class="aside-points">
+        <span>Access based on your role</span>
+        <span>Connected operational modules</span>
+        <span>Financially ready foundations</span>
+      </div>
+    </div>
+  </aside>
+</main>

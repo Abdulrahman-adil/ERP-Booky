@@ -1,0 +1,54 @@
+<section class="sales-page" aria-labelledby="sales-title">
+  <header class="page-header">
+    <div><p class="eyebrow">Sales</p><h1 id="sales-title">Sales invoices</h1><p>Create controlled drafts, then post final invoices to issue stock and create customer receivables.</p></div>
+    <button *ngIf="canManage" class="primary-button" type="button" (click)="openCreate()">New sales invoice</button>
+  </header>
+
+  <p *ngIf="successMessage" class="notice success" role="status">{{ successMessage }}</p>
+  <p *ngIf="errorMessage && !isFormOpen" class="notice error" role="alert">{{ errorMessage }}</p>
+
+  <section class="table-card">
+    <div class="table-toolbar">
+      <label class="search-field"><span>Search</span><input [(ngModel)]="search" [ngModelOptions]="{ standalone: true }" (keyup.enter)="applyFilters()" placeholder="Invoice number or customer" /></label>
+      <label><span>Customer</span><select [(ngModel)]="customerFilter" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()"><option value="">All customers</option><option *ngFor="let customer of customers" [value]="customer.id">{{ customer.code }} — {{ customer.legalName }}</option></select></label>
+      <label><span>Status</span><select [(ngModel)]="statusFilter" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()"><option value="">All statuses</option><option value="Draft">Draft</option><option value="Posted">Posted</option></select></label>
+      <label><span>From</span><input type="date" [(ngModel)]="fromDate" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()" /></label>
+      <label><span>To</span><input type="date" [(ngModel)]="toDate" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()" /></label>
+      <label><span>Sort</span><select [(ngModel)]="sortBy" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()"><option value="invoiceDate">Invoice date</option><option value="number">Invoice number</option><option value="dueDate">Due date</option></select></label>
+      <button class="secondary-button" type="button" (click)="sortDescending = !sortDescending; applyFilters()">{{ sortDescending ? 'Newest first' : 'Oldest first' }}</button>
+      <button *ngIf="search || customerFilter || statusFilter || fromDate || toDate || sortBy !== 'invoiceDate' || !sortDescending" class="text-button" type="button" (click)="clearFilters()">Clear</button>
+    </div>
+
+    <div *ngIf="isLoading" class="state-panel">Loading sales invoices…</div>
+    <div *ngIf="!isLoading && invoices.length === 0" class="state-panel empty"><strong>No sales invoices found</strong><span *ngIf="totalCount === 0">Nothing is pre-populated. Create a draft when you are ready to invoice a customer.</span><span *ngIf="totalCount !== 0">Try clearing filters to view available invoices.</span><button *ngIf="canManage" class="secondary-button" type="button" (click)="openCreate()">Create draft invoice</button></div>
+
+    <div *ngIf="!isLoading && invoices.length" class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Invoice date</th><th>Due date</th><th>Total</th><th>Status</th><th>Payment</th><th></th></tr></thead><tbody><tr *ngFor="let invoice of invoices; trackBy: trackById"><td><a class="invoice-number" [routerLink]="['/sales', invoice.id]">{{ invoice.invoiceNumber }}</a><span *ngIf="invoice.reference">Ref: {{ invoice.reference }}</span></td><td><a [routerLink]="['/customers', invoice.customerId]">{{ invoice.customerName }}</a><span>{{ invoice.customerCode }}</span></td><td>{{ invoice.invoiceDate }}</td><td>{{ invoice.dueDate || '—' }}</td><td><strong>{{ formatAmount(invoice.total, invoice.currencyCode) }}</strong></td><td><span class="badge" [class]="statusClass(invoice.status)">{{ invoice.status }}</span></td><td><span *ngIf="invoice.status === 'Posted'; else noPayment" class="payment-status">{{ invoice.paymentStatus || 'Unpaid' }}</span><ng-template #noPayment>—</ng-template></td><td><a class="text-link" [routerLink]="['/sales', invoice.id]">View</a></td></tr></tbody></table></div>
+    <footer *ngIf="!isLoading && totalCount" class="pagination"><span>{{ totalCount }} total</span><div><button class="text-button" type="button" (click)="changePage(pageNumber - 1)" [disabled]="pageNumber === 1">Previous</button><span>Page {{ pageNumber }} of {{ pageCount }}</span><button class="text-button" type="button" (click)="changePage(pageNumber + 1)" [disabled]="pageNumber === pageCount">Next</button></div></footer>
+  </section>
+
+  <aside *ngIf="isFormOpen" class="editor" aria-label="Sales invoice editor">
+    <header><div><p class="eyebrow">{{ editingInvoice ? 'Draft invoice' : 'New transaction' }}</p><h2>{{ editingInvoice ? 'Edit ' + editingInvoice.invoiceNumber : 'Create sales invoice' }}</h2></div><button class="close-button" type="button" (click)="closeForm()" aria-label="Close invoice editor">×</button></header>
+    <form [formGroup]="form" (ngSubmit)="saveDraft()" novalidate>
+      <p class="system-note">Saving creates a draft only. Stock and the customer receivable are affected only when the draft is posted.</p>
+      <div *ngIf="isReferencesLoading" class="reference-loading">Loading invoice references…</div>
+      <div class="form-grid">
+        <label><span>Customer <b>Required</b></span><select formControlName="customerId"><option value="">Select an active customer</option><option *ngFor="let customer of customers" [value]="customer.id">{{ customer.code }} — {{ customer.legalName }}</option></select><small *ngIf="form.controls.customerId.touched && form.controls.customerId.invalid">Select the customer to invoice.</small></label>
+        <label><span>Warehouse <em>Required when posting stock products</em></span><select formControlName="warehouseId"><option value="">Select warehouse later</option><option *ngFor="let warehouse of warehouses" [value]="warehouse.id">{{ warehouse.code }} — {{ warehouse.name }}</option></select><small>Drafts may be saved before a warehouse is chosen.</small></label>
+        <label><span>Invoice date <b>Required</b></span><input type="date" formControlName="invoiceDate" /></label>
+        <label><span>Due date <em>Optional</em></span><input type="date" formControlName="dueDate" /></label>
+        <label class="full"><span>Reference <em>Optional</em></span><input formControlName="reference" placeholder="Customer PO or delivery reference" /></label>
+        <label class="full"><span>Notes <em>Optional</em></span><textarea formControlName="notes" placeholder="Internal notes retained with the draft"></textarea></label>
+      </div>
+
+      <section class="line-section"><div class="section-heading"><div><h3>Invoice lines</h3><p>Line amounts are recalculated and validated by the backend when saved and posted.</p></div><button class="secondary-button" type="button" (click)="addLine()">Add line</button></div>
+        <div class="line-header"><span>Product</span><span>Quantity</span><span>Unit price</span><span>Discount %</span><span>Line total</span><span></span></div>
+        <div formArrayName="lines" class="line-list"><div *ngFor="let line of lines.controls; let index = index" [formGroupName]="index" class="line-row"><label><select formControlName="productId" (change)="onProductSelected(index)"><option value="">Select product</option><option *ngFor="let product of products" [value]="product.id">{{ product.sku }} — {{ product.name }}</option></select><small *ngIf="productForLine(index) as product">{{ product.unitOfMeasureName || 'Unit of measure required before posting' }}</small></label><label><input type="number" min="0.000001" step="0.000001" formControlName="quantity" aria-label="Quantity" /></label><label><input type="number" min="0" step="0.01" formControlName="unitPrice" aria-label="Unit price" /></label><label><input type="number" min="0" max="100" step="0.01" formControlName="discountPercentage" aria-label="Discount percentage" /></label><strong>{{ formatNumber((line.getRawValue().quantity || 0) * (line.getRawValue().unitPrice || 0) * (1 - (line.getRawValue().discountPercentage || 0) / 100)) }}</strong><button class="remove-button" type="button" (click)="removeLine(index)" [disabled]="lines.length === 1" aria-label="Remove line">×</button></div></div>
+        <div class="line-descriptions" formArrayName="lines"><label *ngFor="let line of lines.controls; let index = index" [formGroupName]="index"><span>Line {{ index + 1 }} description</span><input formControlName="description" placeholder="Defaults to selected product name" /></label></div>
+      </section>
+
+      <section class="draft-total"><span>Draft total preview</span><strong>{{ formatNumber(draftTotalPreview) }}</strong><small>Currency and totals shown on the final invoice are determined by the backend/company settings.</small></section>
+      <p *ngIf="formErrorMessage" class="notice error" role="alert">{{ formErrorMessage }}</p>
+      <footer><button class="secondary-button" type="button" (click)="closeForm()">Cancel</button><button class="primary-button" type="submit" [disabled]="isSaving || !canManage">{{ isSaving ? 'Saving…' : editingInvoice ? 'Save draft changes' : 'Save as draft' }}</button></footer>
+    </form>
+  </aside>
+</section>

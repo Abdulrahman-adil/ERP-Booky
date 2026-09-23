@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+!.env.production.example
+secrets/
+backups/
+artifacts/
+**/bin/
+**/obj/
+docker-compose.override.yml
+.development-reset-backups/
+.migration-backups/
+
+.fake
+
+# Build outputs
+**/bin/
+**/obj/
+**/dist/
+**/node_modules/
+.vscode/
+.claude/

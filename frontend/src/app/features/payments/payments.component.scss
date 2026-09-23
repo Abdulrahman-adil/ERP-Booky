@@ -1,0 +1,15 @@
+:host { display: block; }
+.payments-page { display: grid; gap: 1.25rem; }
+.page-header,.card-heading,.form-actions { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; }
+.page-header h1,.card-heading h2,.card-heading h3 { margin:.2rem 0; }
+.page-header p,.card-heading p,.muted { color:#64748b; margin:.2rem 0; }
+.eyebrow { color:#0f766e; font-size:.78rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.editor-card,.filter-card,.table-card,.cash-bank-card { background:#fff; border:1px solid #dbe4ee; border-radius:14px; padding:1.25rem; box-shadow:0 5px 20px rgba(15,23,42,.04); }
+.form-grid,.filter-card { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.8rem; align-items:end; }
+label { display:grid; gap:.35rem; color:#475569; font-size:.85rem; font-weight:600; }
+input,select,textarea { width:100%; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:8px; padding:.65rem; font:inherit; color:#0f172a; background:#fff; }
+textarea { min-height:2.8rem; resize:vertical; }
+.allocations { margin-top:1.2rem; border-top:1px solid #e2e8f0; padding-top:1rem; }.form-actions { align-items:center; margin-top:1rem; }
+.table-wrap { overflow:auto; } table { width:100%; border-collapse:collapse; } th,td { padding:.75rem; border-bottom:1px solid #e2e8f0; text-align:left; white-space:nowrap; } th { color:#64748b; font-size:.78rem; text-transform:uppercase; } td small { display:block; color:#64748b; margin-top:.15rem; }
+a { color:#0f766e; text-decoration:none; font-weight:600; }.primary-button,.secondary-button,.secondary-link,.text-button { border-radius:8px; padding:.6rem .85rem; font:inherit; cursor:pointer; }.primary-button { background:#0f766e; color:#fff; border:1px solid #0f766e; }.secondary-button,.secondary-link { background:#fff; color:#0f766e; border:1px solid #99f6e4; }.text-button { border:0; background:transparent; color:#64748b; }.badge { display:inline-block; background:#e2e8f0; border-radius:999px; padding:.2rem .5rem; font-size:.78rem; font-weight:700; }.badge.posted { background:#ccfbf1; color:#0f766e; }.state-panel,.notice { padding:1rem; border-radius:10px; background:#f8fafc; }.error { background:#fef2f2; color:#b91c1c; }.inline-form { display:flex; gap:.6rem; margin-top:1rem; }.cash-bank-card { margin-bottom:1rem; }
+@media (max-width: 700px) { .page-header,.card-heading,.form-actions,.inline-form { flex-direction:column; }.page-header .primary-button { width:100%; } }

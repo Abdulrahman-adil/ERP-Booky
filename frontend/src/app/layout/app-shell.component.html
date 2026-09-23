@@ -1,0 +1,64 @@
+<div class="application-frame" [class.sidebar-collapsed]="isSidebarCollapsed" [class.top-navigation]="navigationMode === 'top'">
+  <button *ngIf="isMobileNavigationOpen" class="mobile-overlay" type="button" (click)="closeMobileNavigation()" aria-label="Close navigation"></button>
+
+  <aside class="sidebar" [class.mobile-open]="isMobileNavigationOpen" aria-label="Application navigation">
+    <div class="brand-row">
+      <a class="brand" routerLink="/dashboard" (click)="closeMobileNavigation()">
+        <span class="brand-mark">X</span>
+      </a>
+      <button class="collapse-button" type="button" (click)="toggleSidebar()" [attr.aria-label]="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" [attr.aria-expanded]="!isSidebarCollapsed">{{ isSidebarCollapsed ? '›' : '‹' }}</button>
+    </div>
+
+    <nav class="navigation">
+      <section *ngFor="let group of navigationGroups" class="navigation-group" [class.hidden]="!canShowGroup(group)" [class.collapsed]="!isGroupExpanded(group)">
+        <button type="button" class="nav-group-label" (click)="toggleGroup(group)" [attr.aria-expanded]="isGroupExpanded(group)">
+          <span>{{ group.label }}</span><b aria-hidden="true">⌄</b>
+        </button>
+        <div class="navigation-items">
+          <a *ngFor="let item of group.items" [routerLink]="item.route" [class.active]="isActive(item)" [class.hidden]="!canShow(item.permission)" [attr.title]="isSidebarCollapsed ? item.label : null" (click)="closeMobileNavigation()">
+            <span class="nav-symbol">{{ item.symbol }}</span><span class="nav-label">{{ item.label }}</span>
+          </a>
+        </div>
+      </section>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="environment-indicator">X workspace</span>
+    </div>
+  </aside>
+
+  <section class="page-area">
+    <header class="topbar">
+      <button class="menu-button" type="button" (click)="toggleMobileNavigation()" aria-label="Open navigation">☰</button>
+      <div class="topbar-context">
+        <span>Operations</span>
+        <strong>Workspace</strong>
+      </div>
+      <div *ngIf="auth.user$ | async as user" class="account-area">
+        <ng-container *ngIf="soundState$ | async as sound">
+          <button type="button" class="sound-toggle" [attr.aria-pressed]="sound.enabled" (click)="setSoundEnabled(!sound.enabled)">{{ sound.enabled ? 'Sound on' : 'Sound off' }}</button>
+        </ng-container>
+        <button type="button" class="navigation-mode-toggle" (click)="setNavigationMode(navigationMode === 'sidebar' ? 'top' : 'sidebar')">{{ navigationMode === 'sidebar' ? 'Top navigation' : 'Sidebar navigation' }}</button>
+        <div class="avatar" aria-hidden="true">{{ initials(user.displayName) }}</div>
+        <div class="account-details">
+          <strong>{{ user.displayName }}</strong>
+          <span>{{ user.roles[0] || 'User' }}</span>
+        </div>
+        <button class="logout-button" type="button" (click)="auth.logout()">Log out</button>
+      </div>
+    </header>
+
+    <nav *ngIf="navigationMode === 'top'" class="top-navigation-menu" aria-label="Application navigation">
+      <section *ngFor="let group of navigationGroups" class="top-navigation-group" [class.hidden]="!canShowGroup(group)">
+        <button type="button" (click)="toggleTopNavigationGroup(group)" [attr.aria-expanded]="isTopNavigationGroupOpen(group)">{{ group.label }}</button>
+        <div *ngIf="isTopNavigationGroupOpen(group)" class="top-navigation-items">
+          <a *ngFor="let item of group.items" [routerLink]="item.route" [class.active]="isActive(item)" [class.hidden]="!canShow(item.permission)" (click)="closeTopNavigation()"><span>{{ item.symbol }}</span>{{ item.label }}</a>
+        </div>
+      </section>
+    </nav>
+
+    <main class="content-area">
+      <router-outlet />
+    </main>
+  </section>
+</div>

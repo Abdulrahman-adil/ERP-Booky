@@ -1,0 +1,117 @@
+<section class="detail-page" aria-labelledby="record-title">
+  <a class="back-link" [routerLink]="config.listRoute">← Back to {{ config.singular.toLowerCase() }}s</a>
+
+  <div *ngIf="isLoading" class="state-panel">Loading {{ config.singular.toLowerCase() }}…</div>
+  <section *ngIf="!isLoading && errorMessage" class="state-panel error" role="alert">
+    <strong>{{ errorMessage }}</strong>
+    <a class="secondary-link" [routerLink]="config.listRoute">Return to list</a>
+  </section>
+
+  <ng-container *ngIf="!isLoading && record">
+    <header class="record-header">
+      <div>
+        <p class="eyebrow">{{ config.singular }} master</p>
+        <div class="title-row"><h1 id="record-title">{{ displayName }}</h1><span class="badge" [class.inactive]="!isActive">{{ isActive ? 'Active' : 'Inactive' }}</span></div>
+        <p class="record-code">{{ generatedCode }}</p>
+      </div>
+      <div class="header-actions">
+        <a *ngIf="canManage" class="secondary-link" [routerLink]="config.listRoute" [queryParams]="{ edit: record.id }">Edit</a>
+        <button *ngIf="canManage" class="text-button" type="button" (click)="setStatus()" [disabled]="isUpdatingStatus">{{ isUpdatingStatus ? 'Updating…' : isActive ? 'Deactivate' : 'Activate' }}</button>
+        <button *ngIf="canDeleteSupplier" class="text-button danger" type="button" (click)="deleteSupplier()" [disabled]="isDeleting">{{ isDeleting ? 'Deleting…' : 'Delete' }}</button>
+      </div>
+    </header>
+
+    <section *ngIf="isPartner" class="summary-grid" aria-label="Customer or supplier financial summary">
+      <ng-container *ngIf="kind === 'customers'; else supplierSummary">
+        <div><span>Open receivable</span><strong>{{ isSalesLoading ? 'Loading…' : formatAmount(customerSales?.outstandingReceivable || 0, customerSales?.currencyCode) }}</strong></div>
+        <div><span>Posted sales</span><strong>{{ isSalesLoading ? 'Loading…' : formatAmount(customerSales?.totalPostedSales || 0, customerSales?.currencyCode) }}</strong></div>
+        <div><span>Recent invoices</span><strong>{{ isSalesLoading ? 'Loading…' : customerSales?.recentInvoices?.length || 0 }}</strong></div>
+        <div><span>Recent payments</span><strong>{{ isPaymentsLoading ? 'Loading…' : recentCustomerPayments.length }}</strong></div>
+      </ng-container>
+      <ng-template #supplierSummary><div><span>Open payable</span><strong>{{ isPurchasesLoading ? 'Loading…' : formatAmount(supplierPurchases?.outstandingPayable || 0, supplierPurchases?.currencyCode) }}</strong></div><div><span>Posted purchases</span><strong>{{ isPurchasesLoading ? 'Loading…' : formatAmount(supplierPurchases?.totalPostedPurchases || 0, supplierPurchases?.currencyCode) }}</strong></div><div><span>Open purchase bills</span><strong>{{ isPurchasesLoading ? 'Loading…' : supplierPurchases?.recentBills?.length || 0 }}</strong></div><div><span>Recent payments</span><strong>{{ isPurchasesLoading ? 'Loading…' : supplierPurchases?.recentPayments?.length || 0 }}</strong></div></ng-template>
+    </section>
+
+    <nav class="section-tabs" aria-label="Record sections">
+      <button *ngFor="let section of sections" type="button" [class.active]="activeSection === section.id" (click)="activeSection = section.id">{{ section.label }}</button>
+    </nav>
+
+    <section *ngIf="activeSection === 'overview'" class="overview-grid">
+      <article *ngIf="partner" class="detail-card">
+        <h2>Contact information</h2>
+        <dl><div><dt>Email</dt><dd>{{ partner.email || '—' }}</dd></div><div><dt>Phone</dt><dd>{{ partner.phone || '—' }}</dd></div></dl>
+      </article>
+      <article *ngIf="partner" class="detail-card">
+        <h2>Tax and terms</h2>
+        <dl><div><dt>Tax registration</dt><dd>{{ partner.taxIdentifier || '—' }}</dd></div><div><dt>Payment terms</dt><dd>{{ partner.paymentTermsDays ? partner.paymentTermsDays + ' days' : '—' }}</dd></div></dl>
+      </article>
+      <article *ngIf="partner" class="detail-card full">
+        <h2>Address</h2>
+        <p *ngIf="partner.addressLine1; else noAddress">{{ partner.addressLine1 }}<br *ngIf="partner.addressLine2" />{{ partner.addressLine2 }}<span *ngIf="partner.city || partner.postalCode || partner.countryCode"><br />{{ locationText(partner) }}</span></p>
+        <ng-template #noAddress><p class="muted">No address recorded.</p></ng-template>
+      </article>
+
+      <article *ngIf="product" class="detail-card">
+        <h2>Basic information</h2>
+        <dl><div><dt>SKU</dt><dd class="code">{{ product.sku }}</dd></div><div><dt>Product type</dt><dd>{{ product.productType }}</dd></div><div><dt>Description</dt><dd>Not captured in the current product master.</dd></div></dl>
+      </article>
+      <article *ngIf="product" class="detail-card">
+        <h2>Classification</h2>
+        <dl><div><dt>Category</dt><dd>{{ product.productCategoryName || 'Uncategorized' }}</dd></div><div><dt>Unit of measure</dt><dd>{{ product.unitOfMeasureName || '—' }}</dd></div></dl>
+      </article>
+      <article *ngIf="product" class="detail-card full inventory-readiness">
+        <h2>Inventory</h2>
+        <p *ngIf="isInventoryLoading" class="muted">Loading warehouse availability…</p>
+        <ng-container *ngIf="!isInventoryLoading && productInventory as inventory">
+          <strong class="inventory-total">{{ inventory.totalQuantityOnHand }} {{ inventory.unitOfMeasureName || 'units' }} on hand</strong>
+          <p *ngIf="inventory.warehouseBalances.length === 0" class="muted">No warehouse stock has been recorded for this product.</p>
+          <div *ngIf="inventory.warehouseBalances.length" class="compact-stock"><span *ngFor="let balance of inventory.warehouseBalances">{{ balance.warehouseName }}: <b>{{ balance.quantityOnHand }} {{ balance.unitOfMeasureName }}</b></span></div>
+          <a class="secondary-link" routerLink="/inventory/ledger" [queryParams]="{ productId: product.id }">View stock ledger</a>
+        </ng-container>
+      </article>
+    </section>
+
+    <section *ngIf="activeSection === 'inventory' && product" class="inventory-section">
+      <h2>Warehouse availability</h2>
+      <p *ngIf="isInventoryLoading" class="muted">Loading inventory balances…</p>
+      <div *ngIf="!isInventoryLoading && productInventory as inventory" class="inventory-table"><p><strong>{{ inventory.totalQuantityOnHand }} {{ inventory.unitOfMeasureName || 'units' }}</strong> currently on hand across all warehouses.</p><p *ngIf="inventory.warehouseBalances.length === 0" class="muted">No stock has been recorded for this product.</p><div *ngIf="inventory.warehouseBalances.length"><div *ngFor="let balance of inventory.warehouseBalances"><a routerLink="/inventory/warehouses/{{ balance.warehouseId }}">{{ balance.warehouseName }}</a><span>{{ balance.quantityOnHand }} {{ balance.unitOfMeasureName }}</span></div></div><a class="secondary-link" routerLink="/inventory/ledger" [queryParams]="{ productId: product.id }">Open full stock ledger</a></div>
+    </section>
+
+    <section *ngIf="activeSection === 'stock-movements' && product" class="future-section">
+      <h2>Stock movements</h2>
+      <p *ngIf="isInventoryLoading" class="muted">Loading product movement history…</p>
+      <ng-container *ngIf="!isInventoryLoading && productInventory as inventory">
+        <p *ngIf="inventory.recentMovements.length === 0" class="muted">No stock movements have been posted for this product.</p>
+        <div *ngIf="inventory.recentMovements.length" class="sales-history-list"><a *ngFor="let movement of inventory.recentMovements" routerLink="/inventory/ledger" [queryParams]="{ productId: product.id }"><span><b>{{ movement.movementNumber }}</b><small>{{ movement.movementType }} · {{ movement.warehouseName }} · {{ movement.occurredAt | date:'medium' }}</small><small *ngIf="movement.sourceModule === 'Sales'">Sales invoice · {{ movement.externalReference }}</small></span><strong>{{ movement.quantityIn ? '+' + movement.quantityIn : '-' + movement.quantityOut }} {{ movement.unitOfMeasureName }}</strong></a></div>
+      </ng-container>
+      <a class="secondary-link" routerLink="/inventory/ledger" [queryParams]="{ productId: product.id }">Open full stock ledger</a>
+    </section>
+
+    <section *ngIf="kind === 'customers' && (activeSection === 'transactions' || activeSection === 'invoices')" class="future-section sales-history">
+      <h2>{{ activeSection === 'transactions' ? 'Recent sales activity' : 'Recent sales invoices' }}</h2>
+      <p *ngIf="isSalesLoading" class="muted">Loading sales activity…</p>
+      <ng-container *ngIf="!isSalesLoading && customerSales as sales">
+        <p *ngIf="sales.recentInvoices.length === 0" class="muted">No posted sales invoices exist for this customer yet.</p>
+        <div *ngIf="sales.recentInvoices.length" class="sales-history-list"><a *ngFor="let invoice of sales.recentInvoices" [routerLink]="['/sales', invoice.id]"><span><b>{{ invoice.invoiceNumber }}</b><small>{{ invoice.invoiceDate }} · {{ invoice.status }}</small></span><strong>{{ formatAmount(invoice.total, invoice.currencyCode) }}</strong></a></div>
+        <p *ngIf="activeSection === 'transactions'" class="sales-summary-note">Current outstanding receivable: <strong>{{ formatAmount(sales.outstandingReceivable, sales.currencyCode) }}</strong>.</p>
+      </ng-container>
+    </section>
+
+    <section *ngIf="kind === 'customers' && activeSection === 'payments'" class="future-section sales-history">
+      <div class="card-heading"><div><h2>Customer payment history</h2><p>Posted and draft receipt records remain linked to this customer.</p></div><a class="secondary-link" routerLink="/payments" [queryParams]="{ customerId: id }">Receive payment</a></div>
+      <p *ngIf="isPaymentsLoading" class="muted">Loading customer payments…</p>
+      <p *ngIf="!isPaymentsLoading && recentCustomerPayments.length === 0" class="muted">No customer payments have been created for this customer.</p>
+      <div *ngIf="!isPaymentsLoading && recentCustomerPayments.length" class="sales-history-list"><a *ngFor="let payment of recentCustomerPayments" [routerLink]="['/payments', payment.id]"><span><b>{{ payment.paymentNumber }}</b><small>{{ payment.paymentDate }} · {{ payment.status }} · {{ payment.cashBankAccountName }}</small></span><strong>{{ formatAmount(payment.amount, payment.currencyCode) }}</strong></a></div>
+    </section>
+
+    <section *ngIf="kind === 'suppliers' && (activeSection === 'purchases' || activeSection === 'bills' || activeSection === 'payments')" class="future-section sales-history">
+      <div class="card-heading"><div><h2>{{ activeSection === 'payments' ? 'Supplier payment history' : 'Recent purchase bills' }}</h2><p>Posted transactions remain traceable to this supplier.</p></div><a class="secondary-link" [routerLink]="activeSection === 'payments' ? '/supplier-payments' : '/purchases'" [queryParams]="activeSection === 'payments' ? { supplierId: id } : { supplierId: id }">{{ activeSection === 'payments' ? 'Pay supplier' : 'New purchase bill' }}</a></div>
+      <p *ngIf="isPurchasesLoading" class="muted">Loading supplier activity…</p>
+      <ng-container *ngIf="!isPurchasesLoading && supplierPurchases as purchases"><p *ngIf="activeSection !== 'payments' && purchases.recentBills.length === 0" class="muted">No posted purchase bills exist for this supplier.</p><div *ngIf="activeSection !== 'payments' && purchases.recentBills.length" class="sales-history-list"><a *ngFor="let bill of purchases.recentBills" [routerLink]="['/purchases', bill.id]"><span><b>{{ bill.purchaseBillNumber }}</b><small>{{ bill.invoiceDate }} · {{ bill.paymentStatus || bill.status }}</small></span><strong>{{ formatAmount(bill.outstandingAmount, bill.currencyCode) }}</strong></a></div><p *ngIf="activeSection === 'payments' && purchases.recentPayments.length === 0" class="muted">No supplier payments have been created for this supplier.</p><div *ngIf="activeSection === 'payments' && purchases.recentPayments.length" class="sales-history-list"><a *ngFor="let payment of purchases.recentPayments" [routerLink]="['/supplier-payments', payment.id]"><span><b>{{ payment.paymentNumber }}</b><small>{{ payment.paymentDate }} · {{ payment.status }} · {{ payment.cashBankAccountName }}</small></span><strong>{{ formatAmount(payment.amount, payment.currencyCode) }}</strong></a></div></ng-container>
+    </section>
+
+    <section *ngIf="activeSection !== 'overview' && activeSection !== 'inventory' && activeSection !== 'stock-movements' && !(kind === 'customers' && (activeSection === 'transactions' || activeSection === 'invoices' || activeSection === 'payments')) && !(kind === 'suppliers' && (activeSection === 'purchases' || activeSection === 'bills' || activeSection === 'payments'))" class="future-section">
+      <h2>{{ activeSectionLabel }}</h2>
+      <p>{{ futureMessage() }}</p>
+    </section>
+  </ng-container>
+</section>

@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-erp}
+      POSTGRES_USER: ${POSTGRES_USER:-erp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-erp}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__PostgreSQL: Host=postgres;Port=5432;Database=${POSTGRES_DB:-erp};Username=${POSTGRES_USER:-erp};Password=${POSTGRES_PASSWORD:-erp}
+      Authentication__Jwt__Issuer: ${JWT_ISSUER:-erp-api}
+      Authentication__Jwt__Audience: ${JWT_AUDIENCE:-erp-web}
+      Authentication__Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env before starting the API}
+      Authentication__Google__Enabled: ${GOOGLE_AUTHENTICATION_ENABLED:-false}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Authentication__ExternalWorkspace__BaseCurrencyCode: ${EXTERNAL_WORKSPACE_BASE_CURRENCY:-USD}
+      DevelopmentAdmin__Email: ${DEVELOPMENT_ADMIN_EMAIL:-}
+      DevelopmentAdmin__Password: ${DEVELOPMENT_ADMIN_PASSWORD:-}
+      Attachments__StoragePath: /app/data/attachments
+    ports:
+      - "5080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - attachments_data:/app/data/attachments
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        GOOGLE_SIGN_IN_ENABLED: ${GOOGLE_AUTHENTICATION_ENABLED:-false}
+        GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  attachments_data:

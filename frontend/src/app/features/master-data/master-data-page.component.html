@@ -1,0 +1,60 @@
+<section class="master-data" [class.form-open]="isFormOpen" aria-labelledby="master-data-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Master data</p>
+      <h1 id="master-data-title">{{ config.title }}</h1>
+      <p>{{ config.description }}</p>
+    </div>
+    <button *ngIf="canManage" class="primary-button" type="button" (click)="openCreate()">New {{ config.singular }}</button>
+  </header>
+
+  <nav *ngIf="kind === 'products' || kind === 'categories' || kind === 'units'" class="sub-navigation" aria-label="Product master data">
+    <a routerLink="/products" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Products</a>
+    <a routerLink="/products/categories" routerLinkActive="active">Categories</a>
+    <a routerLink="/products/units" routerLinkActive="active">Units of measure</a>
+  </nav>
+
+  <p *ngIf="successMessage" class="notice success" role="status">{{ successMessage }}</p>
+  <p *ngIf="errorMessage && !isFormOpen" class="notice error" role="alert">{{ errorMessage }}</p>
+
+  <section class="table-card">
+    <div class="table-toolbar">
+      <label class="search-field"><span>Search</span><input [(ngModel)]="search" [ngModelOptions]="{ standalone: true }" (keyup.enter)="applyFilters()" placeholder="Search by code or name" /></label>
+      <label *ngIf="!isUnit()" class="filter-field"><span>Status</span><select [(ngModel)]="statusFilter" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()"><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+      <label *ngIf="isProduct()" class="filter-field"><span>Category</span><select [(ngModel)]="productCategoryFilter" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()"><option value="">All categories</option><option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option></select></label>
+      <label *ngIf="isProduct()" class="filter-field"><span>Unit</span><select [(ngModel)]="productUnitFilter" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()"><option value="">All units</option><option *ngFor="let unit of units" [value]="unit.id">{{ unit.name }}</option></select></label>
+      <label class="filter-field"><span>Sort</span><select [(ngModel)]="sortBy" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()"><option value="">Code</option><option value="name">Name</option></select></label>
+      <label class="sort-direction"><input type="checkbox" [(ngModel)]="sortDescending" [ngModelOptions]="{ standalone: true }" (change)="applyFilters()" /> Descending</label>
+      <button class="secondary-button" type="button" (click)="applyFilters()">Search</button>
+      <button *ngIf="search || statusFilter || sortBy || sortDescending || productCategoryFilter || productUnitFilter" class="text-button" type="button" (click)="clearFilters()">Clear</button>
+    </div>
+
+    <div *ngIf="isLoading" class="state-panel">Loading {{ config.title.toLowerCase() }}…</div>
+    <div *ngIf="!isLoading && items.length === 0" class="state-panel empty"><strong>No {{ config.title.toLowerCase() }} yet</strong><span>Create the first record when you are ready. Nothing is pre-populated.</span><button *ngIf="canManage" class="secondary-button" type="button" (click)="openCreate()">New {{ config.singular }}</button></div>
+
+    <div *ngIf="!isLoading && items.length" class="table-wrap">
+      <table>
+        <thead><tr><th>Code</th><th>Name</th><th *ngIf="isPartner()">Contact</th><th *ngIf="isProduct()">Item purpose</th><th *ngIf="isProduct()">Category</th><th *ngIf="isProduct()">Unit</th><th *ngIf="isUnit()">Dimension</th><th *ngIf="!isUnit()">Status</th><th class="actions">Actions</th></tr></thead>
+        <tbody><tr *ngFor="let item of items"><td class="code">{{ itemCode(item) }}</td><td><a *ngIf="isPartner() || isProduct(); else plainName" class="record-link" [routerLink]="detailRoute(item)">{{ displayName(item) }}</a><ng-template #plainName><strong>{{ displayName(item) }}</strong></ng-template><span *ngIf="isProduct()">{{ itemProductType(item) }}</span><span *ngIf="isCategory() && itemParent(item)">Parent: {{ itemParent(item) }}</span></td><td *ngIf="isPartner()">{{ itemContact(item) }}</td><td *ngIf="isProduct()">{{ itemInventoryPurpose(item) }}</td><td *ngIf="isProduct()">{{ itemCategory(item) }}</td><td *ngIf="isProduct()">{{ itemUnit(item) || '—' }}</td><td *ngIf="isUnit()">{{ itemDimension(item) }}</td><td *ngIf="!isUnit()"><span class="badge" [class.inactive]="!itemIsActive(item)">{{ itemIsActive(item) ? 'Active' : 'Inactive' }}</span></td><td class="actions"><button *ngIf="canManage" class="text-button" type="button" (click)="openEdit(item)">Edit</button><button *ngIf="canManage && !isUnit()" class="text-button danger" type="button" (click)="setStatus(item)">{{ itemIsActive(item) ? 'Deactivate' : 'Activate' }}</button><button *ngIf="canManage && kind === 'suppliers'" class="text-button danger" type="button" (click)="deleteSupplier(item)" [disabled]="deletingSupplierId === item.id">{{ deletingSupplierId === item.id ? 'Deleting…' : 'Delete' }}</button></td></tr></tbody>
+      </table>
+    </div>
+    <footer *ngIf="!isLoading && totalCount" class="pagination"><span>{{ totalCount }} total</span><div><button class="text-button" type="button" (click)="changePage(pageNumber - 1)" [disabled]="pageNumber === 1">Previous</button><span>Page {{ pageNumber }} of {{ pageCount }}</span><button class="text-button" type="button" (click)="changePage(pageNumber + 1)" [disabled]="pageNumber === pageCount">Next</button></div></footer>
+  </section>
+
+  <aside *ngIf="isFormOpen" class="editor" aria-label="Record editor">
+    <header><div><p class="eyebrow">{{ selectedItem ? 'Edit record' : 'New record' }}</p><h2>{{ selectedItem ? 'Edit' : 'Create' }} {{ config.singular }}</h2></div><button class="close-button" type="button" (click)="closeForm()" aria-label="Close editor">×</button></header>
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="form-grid">
+        <label *ngIf="isUnit() || isCategory()"><span>Code</span><input formControlName="code" /><small *ngIf="form.controls.code.touched && form.controls.code.invalid">A valid code is required.</small></label>
+        <p *ngIf="isPartner() || isProduct()" class="system-note">{{ isProduct() ? 'SKU' : 'Code' }} is generated automatically when the record is created.</p>
+        <label *ngIf="!isPartner()"><span>Name</span><input formControlName="name" /><small *ngIf="form.controls.name.touched && form.controls.name.invalid">A name is required.</small></label>
+        <ng-container *ngIf="isPartner()"><h3 class="full">Basic information</h3><label class="full"><span>Name <b>Required</b></span><input formControlName="legalName" /><small *ngIf="form.controls.legalName.touched && form.controls.legalName.invalid">Enter a customer or supplier name.</small></label><h3 class="full">Contact information <em>Optional</em></h3><label><span>Email</span><input type="email" formControlName="email" /></label><label><span>Phone</span><input formControlName="phone" /></label><h3 class="full">Tax and address <em>Optional</em></h3><label><span>Tax registration</span><input formControlName="taxIdentifier" /></label><label><span>Payment terms (days)</span><input type="number" formControlName="paymentTermsDays" /></label><label class="full"><span>Address line 1</span><input formControlName="addressLine1" /></label><label class="full"><span>Address line 2</span><input formControlName="addressLine2" /></label><label><span>City</span><input formControlName="city" /></label><label><span>Postal code</span><input formControlName="postalCode" /></label><label><span>Country code</span><input formControlName="countryCode" maxlength="2" placeholder="AE" /><small *ngIf="form.controls.countryCode.touched && form.controls.countryCode.invalid">Use a two-letter country code when an address is entered.</small></label></ng-container>
+        <ng-container *ngIf="isUnit()"><label><span>Dimension</span><input formControlName="dimension" placeholder="Weight, length, count" /></label><label><span>Conversion to base</span><input type="number" step="0.000001" formControlName="conversionFactorToBase" /></label><label><span>Decimal places</span><input type="number" min="0" max="6" formControlName="decimalPlaces" /></label></ng-container>
+        <ng-container *ngIf="isCategory()"><label class="full"><span>Parent category</span><select formControlName="parentCategoryId"><option value="">No parent category</option><option *ngFor="let category of categories" [value]="category.id" [disabled]="selectedItem?.id === category.id">{{ category.code }} — {{ category.name }}</option></select></label></ng-container>
+        <ng-container *ngIf="isProduct()"><h3 class="full">Classification <em>Optional</em></h3><label><span>Product type</span><select formControlName="productType"><option value="Stock">Stock</option><option value="NonStock">Non-stock</option><option value="Service">Service</option></select></label><label><span>Inventory item purpose</span><select formControlName="inventoryPurpose"><option value="">Not specified</option><option value="RawMaterial">Raw material</option><option value="FinishedGood">Finished good</option><option value="PackagingMaterial">Packaging material</option><option value="SemiFinishedGood">Semi-finished good</option><option value="Consumable">Consumable</option><option value="TradingItem">Trading item</option></select><small>Required only when a stock product is used in manufacturing.</small></label><label><span>Unit of measure</span><select formControlName="stockUnitOfMeasureId"><option value="">No unit assigned</option><option *ngFor="let unit of units" [value]="unit.id">{{ unit.code }} — {{ unit.name }}</option></select><small *ngIf="!units.length">No units yet. <a routerLink="/products/units">Create a unit of measure</a>.</small></label><label class="full"><span>Product category</span><select formControlName="productCategoryId"><option value="">Uncategorized</option><option *ngFor="let category of categories" [value]="category.id">{{ category.code }} — {{ category.name }}</option></select><small *ngIf="!categories.length">No categories yet. <a routerLink="/products/categories">Create a product category</a>.</small></label></ng-container>
+      </div>
+      <p *ngIf="errorMessage" class="notice error" role="alert">{{ errorMessage }}</p>
+      <footer><button class="secondary-button" type="button" (click)="closeForm()">Cancel</button><button class="primary-button" type="submit" [disabled]="isSaving || !canManage">{{ isSaving ? 'Saving…' : selectedItem ? 'Save changes' : 'Create record' }}</button></footer>
+    </form>
+  </aside>
+</section>

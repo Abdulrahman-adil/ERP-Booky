@@ -1,0 +1,69 @@
+<section class="administration" aria-labelledby="administration-title">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h1 id="administration-title">Access and workspace control</h1>
+      <p>Manage access deliberately. Permissions are enforced by the API, not only hidden in navigation.</p>
+    </div>
+    <span class="environment-badge">Development workspace</span>
+  </header>
+
+  <p *ngIf="errorMessage" class="page-error" role="alert">{{ errorMessage }}</p>
+  <p *ngIf="isLoading" class="loading-state">Loading access controls…</p>
+
+  <ng-container *ngIf="!isLoading && canManage">
+    <nav class="tabs" aria-label="Administration sections">
+      <button type="button" [class.active]="activeTab === 'users'" (click)="selectTab('users')">Users <span>{{ users.length }}</span></button>
+      <button type="button" [class.active]="activeTab === 'roles'" (click)="selectTab('roles')">Roles & permissions <span>{{ roles.length }}</span></button>
+      <button *ngIf="canReset" type="button" [class.active]="activeTab === 'development'" (click)="selectTab('development')">Development reset</button>
+    </nav>
+
+    <section *ngIf="activeTab === 'users'" class="workspace-grid">
+      <article class="data-card">
+        <header class="card-header"><div><h2>Users</h2><p>Activate, deactivate, reset passwords, and manage supported roles.</p></div><button type="button" class="primary" (click)="startUser()">New user</button></header>
+        <label class="search"><span>Search users</span><input [(ngModel)]="userSearch" [ngModelOptions]="{standalone: true}" type="search" placeholder="Name, email, or role"></label>
+        <div *ngIf="filteredUsers.length; else noUsers" class="records">
+          <button *ngFor="let user of filteredUsers" type="button" class="record" [class.selected]="selectedUser?.id === user.id" (click)="startUser(user)">
+            <span class="avatar">{{ user.displayName.slice(0, 1) }}</span><span class="record-copy"><strong>{{ user.displayName }}</strong><small>{{ user.email }} · {{ user.roleNames.join(', ') || 'No role' }}</small></span><span class="status-chip" [class.inactive]="!user.isActive">{{ user.isActive ? 'Active' : 'Inactive' }}</span>
+          </button>
+        </div>
+        <ng-template #noUsers><div class="empty-state"><strong>No users found</strong><p>Create a user to delegate a controlled part of the workspace.</p></div></ng-template>
+      </article>
+
+      <form class="editor-card" [formGroup]="userForm" (ngSubmit)="saveUser()">
+        <header><p class="eyebrow">{{ selectedUser ? 'Edit user' : 'New user' }}</p><h2>{{ selectedUser?.displayName || 'Invite a workspace user' }}</h2><p>New users require a temporary password. Leave it blank when you do not want to change an existing password.</p></header>
+        <label><span>Full name</span><input formControlName="displayName" autocomplete="name" placeholder="e.g. Amina Hassan"><small *ngIf="userForm.controls.displayName.touched && userForm.controls.displayName.invalid">Enter a name.</small></label>
+        <label><span>Email address</span><input formControlName="email" autocomplete="email" type="email" placeholder="name@company.com"><small *ngIf="userForm.controls.email.touched && userForm.controls.email.invalid">Enter a valid email address.</small></label>
+        <label><span>{{ selectedUser ? 'New password' : 'Temporary password' }}</span><input formControlName="password" autocomplete="new-password" type="password" placeholder="At least 10 characters"><small>Passwords are stored only as secure hashes.</small></label>
+        <fieldset><legend>Assigned roles</legend><p>Roles determine every permission granted through the API.</p><label *ngFor="let role of roles" class="check-row" [class.muted]="!role.isActive"><input type="checkbox" [checked]="hasUserRole(role.id)" [disabled]="!role.isActive" (change)="toggleUserRole(role.id)"><span><strong>{{ role.name }}</strong><small>{{ role.description || 'No description provided.' }}</small></span></label></fieldset>
+        <footer><button *ngIf="selectedUser" type="button" class="quiet" (click)="changeUserStatus(selectedUser)">{{ selectedUser.isActive ? 'Deactivate' : 'Activate' }}</button><button type="submit" class="primary" [disabled]="isSaving">{{ isSaving ? 'Saving…' : selectedUser ? 'Save user' : 'Create user' }}</button></footer>
+      </form>
+    </section>
+
+    <section *ngIf="activeTab === 'roles'" class="workspace-grid">
+      <article class="data-card">
+        <header class="card-header"><div><h2>Roles</h2><p>Create clear access sets, then assign them to users.</p></div><button type="button" class="primary" (click)="startRole()">New role</button></header>
+        <div *ngIf="roles.length; else noRoles" class="records">
+          <button *ngFor="let role of roles" type="button" class="record" [class.selected]="selectedRole?.id === role.id" (click)="startRole(role)"><span class="role-mark">{{ role.name.slice(0, 2) }}</span><span class="record-copy"><strong>{{ role.name }}</strong><small>{{ role.assignedUserCount }} assigned user{{ role.assignedUserCount === 1 ? '' : 's' }} · {{ role.permissionIds.length }} permissions</small></span><span class="status-chip" [class.inactive]="!role.isActive">{{ role.isActive ? 'Active' : 'Inactive' }}</span></button>
+        </div>
+        <ng-template #noRoles><div class="empty-state"><strong>No roles yet</strong><p>Create a role, then select its module permissions.</p></div></ng-template>
+      </article>
+
+      <form class="editor-card permission-editor" [formGroup]="roleForm" (ngSubmit)="saveRole()">
+        <header><p class="eyebrow">{{ selectedRole ? 'Edit role' : 'New role' }}</p><h2>{{ selectedRole?.name || 'Define a role' }}</h2><p>Use grouped permissions to keep access understandable and auditable.</p></header>
+        <label><span>Role name</span><input formControlName="name" placeholder="e.g. Sales coordinator"></label>
+        <label><span>Description</span><textarea formControlName="description" rows="2" placeholder="What work can this role perform?"></textarea></label>
+        <section class="permission-groups"><article *ngFor="let group of permissionGroups"><h3>{{ group.label }}</h3><label *ngFor="let permission of group.permissions" class="check-row"><input type="checkbox" [checked]="hasPermission(permission.id)" (change)="togglePermission(permission.id)"><span><strong>{{ permission.name }}</strong><small>{{ permission.key }}</small></span></label></article></section>
+        <footer><button *ngIf="selectedRole" type="button" class="quiet" (click)="changeRoleStatus(selectedRole)">{{ selectedRole.isActive ? 'Deactivate' : 'Activate' }}</button><button type="submit" class="primary" [disabled]="isSaving">{{ isSaving ? 'Saving…' : selectedRole ? 'Save role' : 'Create role' }}</button></footer>
+      </form>
+    </section>
+
+    <section *ngIf="activeTab === 'development' && canReset" class="reset-panel">
+      <article class="reset-intro"><p class="eyebrow">Development only</p><h2>Return to a clean configured workspace</h2><p>This is intentionally unavailable in production. It removes company business activity while preserving the company, administrator, access-control definitions, chart of accounts, accounting setup, cash/bank mapping, reference units/categories, schema, and migration history.</p><ul><li>Deletes transactions, documents, inventory, open items, GL/journals, document attachments, customers, suppliers, products, and warehouses.</li><li>Resets document number sequences for a fresh demonstration.</li><li>Never drops the database or rewrites migration history.</li></ul></article>
+      <article *ngIf="resetPreview" class="reset-summary"><h3>Data that will be cleared</h3><div class="reset-counts"><span><b>{{ resetPreview.salesInvoices }}</b> sales invoices</span><span><b>{{ resetPreview.purchaseBills }}</b> purchase bills</span><span><b>{{ resetPreview.customerPayments + resetPreview.supplierPayments }}</b> payments</span><span><b>{{ resetPreview.inventoryMovements }}</b> inventory movements</span><span><b>{{ resetPreview.openItems }}</b> open items</span><span><b>{{ resetPreview.journalEntries }}</b> journals</span><span><b>{{ resetPreview.generalLedgerEntries }}</b> GL entries</span><span><b>{{ resetPreview.attachments }}</b> attachments</span><span><b>{{ resetPreview.customers + resetPreview.suppliers }}</b> partners</span><span><b>{{ resetPreview.products }}</b> products</span><span><b>{{ resetPreview.warehouses }}</b> warehouses</span></div></article>
+      <form class="reset-confirmation" [formGroup]="resetForm" (ngSubmit)="resetDevelopmentData()"><label><span>Type <code>RESET DEVELOPMENT DATA</code> to continue</span><input formControlName="confirmation" autocomplete="off" placeholder="RESET DEVELOPMENT DATA"></label><button type="submit" class="danger" [disabled]="isSaving">{{ isSaving ? 'Resetting…' : 'Reset development data' }}</button></form>
+    </section>
+  </ng-container>
+
+  <section *ngIf="!isLoading && !canManage" class="empty-state access-denied"><strong>Administration access required</strong><p>Your current role does not have permission to manage users and roles.</p></section>
+</section>

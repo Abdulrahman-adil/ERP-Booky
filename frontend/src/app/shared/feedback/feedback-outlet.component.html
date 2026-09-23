@@ -1,0 +1,19 @@
+<div class="toast-region" aria-live="polite" aria-relevant="additions">
+  <article *ngFor="let message of feedback.messages$ | async" class="toast" [class]="'toast ' + message.tone">
+    <span class="toast-mark" aria-hidden="true">{{ message.tone === 'success' ? '✓' : message.tone === 'error' ? '!' : 'i' }}</span>
+    <p>{{ message.message }}</p>
+    <button type="button" (click)="feedback.dismiss(message.id)" aria-label="Dismiss notification">×</button>
+  </article>
+</div>
+
+<section *ngIf="confirmation.dialog$ | async as dialog" class="dialog-backdrop" role="presentation">
+  <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirmation-title" aria-describedby="confirmation-message">
+    <p class="dialog-kicker">Confirm action</p>
+    <h2 id="confirmation-title">{{ dialog.title }}</h2>
+    <p id="confirmation-message">{{ dialog.message }}</p>
+    <div class="dialog-actions">
+      <button type="button" class="secondary" (click)="confirmation.resolve(false)" autofocus>Cancel</button>
+      <button type="button" [class]="'confirm ' + dialog.tone" (click)="confirm()">{{ dialog.confirmLabel }}</button>
+    </div>
+  </div>
+</section>
