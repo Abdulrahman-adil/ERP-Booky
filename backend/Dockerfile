@@ -21,8 +21,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/data/attachments && chown -R app:app /app/data
 WORKDIR /app
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
+ENV ENTRYPOINT ["sh", "-c", "dotnet Erp.Api.dll --urls http://0.0.0.0:${PORT:-10000}"]
 COPY --from=build /app/publish .
 USER app
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD curl --fail --silent http://localhost:8080/health/ready || exit 1
