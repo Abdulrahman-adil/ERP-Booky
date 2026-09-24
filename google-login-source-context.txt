@@ -1225,11 +1225,9 @@ RUN dotnet publish src/Erp.Api/Erp.Api.csproj --configuration Release --output /
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
-COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "Erp.Api.dll"]
 
+COPY --from=build /app/publish .
+ENTRYPOINT ["sh", "-c", "dotnet Erp.Api.dll --urls http://0.0.0.0:${PORT:-10000}"]
 ===== frontend/Dockerfile =====
 
 FROM node:20-alpine AS build
