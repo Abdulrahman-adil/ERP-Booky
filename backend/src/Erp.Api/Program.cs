@@ -145,6 +145,7 @@ app.MapGet("/api/v1/system/ping", () => Results.Ok(new SystemStatusResponse("ok"
     .WithName("SystemPing")
     .WithTags("System")
     .Produces<SystemStatusResponse>();
+app.MapGet("/", () => Results.Ok(new { status = "Healthy" }));
 
 app.Run();
 
