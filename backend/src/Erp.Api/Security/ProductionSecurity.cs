@@ -48,19 +48,40 @@ public static class ProductionSecurity
 
     public static void ValidateProductionConfiguration(IConfiguration configuration)
     {
-        var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        var origins = ReadOrigins(configuration);
         if (origins.Length == 0 || origins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var uri)
             || uri.Scheme != "https" || uri.Authority.Contains('*') || uri.UserInfo.Length > 0
             || uri.GetLeftPart(UriPartial.Authority) != origin || uri.IsLoopback))
             throw new InvalidOperationException("Production requires explicit HTTPS frontend origins in Cors:AllowedOrigins.");
-        var signingKey = configuration["Authentication:Jwt:SigningKey"];
+
+        var signingKey = configuration["Authentication:Jwt:SigningKey"]
+            ?? configuration["JWT_SIGNING_KEY"];
         if (string.IsNullOrWhiteSpace(signingKey) || signingKey.Length < 64 || signingKey.Contains("REPLACE", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Production requires a randomly generated Authentication:Jwt:SigningKey of at least 64 characters.");
-        if (string.IsNullOrWhiteSpace(configuration["AllowedHosts"]) || configuration["AllowedHosts"]!.Contains('*'))
+
+        var allowedHosts = configuration["AllowedHosts"];
+        var renderHost = configuration["RENDER_EXTERNAL_HOSTNAME"];
+        if (string.IsNullOrWhiteSpace(allowedHosts)
+            || (allowedHosts.Contains('*') && string.IsNullOrWhiteSpace(renderHost)))
             throw new InvalidOperationException("Production requires explicit AllowedHosts.");
-        if (configuration.GetValue<bool>("Authentication:Google:Enabled")
+
+        var googleEnabled = configuration.GetValue<bool>("Authentication:Google:Enabled")
+            || configuration.GetValue<bool>("GOOGLE_AUTHENTICATION_ENABLED");
+        if (googleEnabled
             && !(configuration["Authentication:Google:ClientId"]?.EndsWith(".apps.googleusercontent.com", StringComparison.Ordinal) ?? false))
             throw new InvalidOperationException("Enabled Google authentication requires a valid ClientId configuration.");
+    }
+
+    private static string[] ReadOrigins(IConfiguration configuration)
+    {
+        var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        if (origins.Length > 0) return origins;
+
+        var single = configuration["Cors:AllowedOrigins__0"]
+            ?? configuration["CORS_ALLOWED_ORIGIN"]
+            ?? configuration["Cors:AllowedOrigin"];
+
+        return string.IsNullOrWhiteSpace(single) ? [] : [single.Trim().TrimEnd('/')];
     }
 
     public static IApplicationBuilder UseSecurityHeaders(this IApplicationBuilder app) => app.Use(async (context, next) =>
@@ -77,7 +98,6 @@ public static class ProductionSecurity
         }
         else
         {
-            // CSP for Angular SPA - allows inline scripts/styles for Angular, Google Sign-In frames
             context.Response.Headers.ContentSecurityPolicy =
                 "default-src 'self'; " +
                 "script-src 'self' 'unsafe-inline' https://accounts.google.com; " +
