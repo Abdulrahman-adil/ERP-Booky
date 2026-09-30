@@ -5,4 +5,4 @@ export const environment = {
     enabled: false,
     clientId: '',
   },
-}
+};
