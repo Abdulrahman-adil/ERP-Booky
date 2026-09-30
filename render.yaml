@@ -53,8 +53,8 @@ services:
       - key: CORS_ALLOWED_ORIGIN
         fromService:
           name: erp-frontend
-          type: pserv
-          property: host
+          type: static
+          property: url
 
       # Allowed Hosts - references this service's own URL
       - key: ALLOWED_HOSTS
@@ -101,7 +101,7 @@ services:
   # ---------------------------------------------------------
   # Frontend (Static Site - Angular)
   # ---------------------------------------------------------
-  - type: pserv
+  - type: static
     name: erp-frontend
     env: static
     plan: free
