@@ -1,8 +1,8 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:5080/api',
+  apiBaseUrl: 'https://erp-booky-1.onrender.com/api',
   googleSignIn: {
     enabled: false,
-    clientId: ''
-  }
-};
+    clientId: '',
+  },
+}
