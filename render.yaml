@@ -1,0 +1,155 @@
+# Render Blueprint for ERP Deployment
+# Connect your repo at: https://dashboard.render.com/blueprints
+# Render will auto-create all services from this file
+
+services:
+  # ---------------------------------------------------------
+  # PostgreSQL Database (Managed)
+  # ---------------------------------------------------------
+  - type: pserv
+    name: erp-db
+    env: postgres
+    plan: starter
+    postgresMajorVersion: 16
+    databaseName: erp
+    user: erp
+    # Auto-generates: POSTGRES_PASSWORD, POSTGRES_USER, POSTGRES_DB
+    # Internal connection string available as: DATABASE_URL
+
+  # ---------------------------------------------------------
+  # Backend API (Docker)
+  # ---------------------------------------------------------
+  - type: web
+    name: erp-api
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: true
+    plan: starter
+    # Render injects $PORT (default 8080) - Dockerfile uses ${PORT:-10000}
+    envVars:
+      # Core ASP.NET Core
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
+      # Database - references erp-db internal connection
+      - key: ConnectionStrings__PostgreSQL
+        fromDatabase:
+          name: erp-db
+          property: connectionString
+
+      # JWT Authentication (auto-generate secure key)
+      - key: JWT_SIGNING_KEY
+        generateValue: true
+      - key: JWT_ISSUER
+        value: erp-api
+      - key: JWT_AUDIENCE
+        value: erp-web
+      - key: JWT_EXPIRATION_MINUTES
+        value: "60"
+
+      # CORS - references frontend service URL
+      - key: CORS_ALLOWED_ORIGIN
+        fromService:
+          name: erp-frontend
+          type: pserv
+          property: host
+
+      # Allowed Hosts - references this service's own URL
+      - key: ALLOWED_HOSTS
+        fromService:
+          name: erp-api
+          type: web
+          property: host
+
+      # Reverse Proxy - Render's proxy IP (0.0.0.0 works for Render)
+      - key: REVERSE_PROXY_IP
+        value: "0.0.0.0"
+
+      # Google Auth (disabled by default - enable in dashboard if needed)
+      - key: GOOGLE_AUTHENTICATION_ENABLED
+        value: "false"
+      - key: GOOGLE_CLIENT_ID
+        value: ""
+        # Optional: add from Secret Files if enabling
+
+      # External Workspace Currency
+      - key: EXTERNAL_WORKSPACE_BASE_CURRENCY
+        value: "USD"
+
+      # Logging
+      - key: Logging__LogLevel__Default
+        value: "Warning"
+      - key: Logging__LogLevel__Microsoft.AspNetCore
+        value: "Warning"
+
+      # Attachments storage path (inside container)
+      - key: Attachments__StoragePath
+        value: "/app/data/attachments"
+
+    # Persistent disk for attachments
+    disk:
+      name: erp-attachments
+      mountPath: /app/data/attachments
+      sizeGB: 1
+
+    # Scale settings (optional - adjust as needed)
+    # numInstances: 1
+    # autoscaling: false
+
+  # ---------------------------------------------------------
+  # Frontend (Static Site - Angular)
+  # ---------------------------------------------------------
+  - type: pserv
+    name: erp-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm ci && npm run build --configuration production
+    staticPublishPath: ./dist/erp/browser
+    # Note: Adjust staticPublishPath if your Angular output differs
+    # Common alternatives: ./dist/erp, ./dist/browser, ./dist
+    envVars:
+      - key: GOOGLE_AUTHENTICATION_ENABLED
+        value: "false"
+      - key: GOOGLE_CLIENT_ID
+        value: ""
+      - key: API_BASE_URL
+        value: "/api"
+    # Custom headers for security (optional)
+    # headers:
+    #   - path: /*
+    #     name: X-Content-Type-Options
+    #     value: nosniff
+    #   - path: /*
+    #     name: X-Frame-Options
+    #     value: DENY
+
+  # ---------------------------------------------------------
+  # Optional: Background Worker for Migrations (run once manually)
+  # ---------------------------------------------------------
+  # - type: worker
+  #   name: erp-migrate
+  #   env: docker
+  #   dockerfilePath: ./backend/Dockerfile
+  #   dockerContext: ./backend
+  #   dockerCommand: "/tools/dotnet-ef database update --project src/Erp.Infrastructure --startup-project src/Erp.Api --configuration Release --no-build"
+  #   envVars:
+  #     - key: ConnectionStrings__PostgreSQL
+  #       fromDatabase:
+  #         name: erp-db
+  #         property: connectionString
+  #     - key: ASPNETCORE_ENVIRONMENT
+  #       value: Production
+  #   plan: starter
+  #   # Don't auto-deploy - run manually via dashboard when needed
+  #   autoDeploy: false
+
+# ---------------------------------------------------------
+# Optional: Secret Files (for sensitive files like certs)
+# ---------------------------------------------------------
+# secretFiles:
+#   - path: /run/secrets/tls_certificate
+#     name: tls-certificate
+#   - path: /run/secrets/tls_private_key
+#     name: tls-private-key
